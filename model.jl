@@ -6,12 +6,18 @@ using Distributions
 Runs a field goal attempt and returns the position value considering the outcomes
 """
 function field_goal_attempt(
-    state::Vector{Any},
-    ball_section::Int,
+    time_remaining::Int,
+    score_diff::Int,
+    timeouts_remaining::Int,
+    ball_position::Int,
+    down::Int,
+    first_down_position::Int,
+    offense_has_ball::Bool,
+    is_first_half::Bool
 )
-
     field_goal_value = 0
     # field goal probability
+    ball_section = Int(ceil(ball_position/10))
     col_name = Symbol("T-$ball_section")
     field_goal_prob = field_goal_df[1, col_name]
     # Kick field goal prob
@@ -50,6 +56,7 @@ function field_goal_attempt(
             )[1]
         end
     else
+        field_goal_made_val = 0
         if ball_section < 10
             field_goal_missed_val = run_play(
                 Int(time_remaining-1),
@@ -107,7 +114,6 @@ function run_play(
     if time_remaining <= 0
         # First half maximise points
         if is_first_half
-            println("Returning $score_diff")
             return score_diff, ""
         end
         # Second half maximise winning
@@ -118,11 +124,9 @@ function run_play(
             return 0, ""
         end
     end
-
     
     # Round ball_position & first_down_position to field sections
     ball_section = Int(ceil(ball_position/10))
-    #println("Ball section: $ball_section")
     first_down_section = ceil((first_down_position+ball_section)/10) + 1 # Must reach at least first down. +1 ensure this happens 
     if offense_has_ball
         offense_flag = 1
@@ -148,53 +152,17 @@ function run_play(
         ]
     end
     
-    
-    # Get field goal stats
-    println("\nField goal section")
-    field_attempt_val = 0
-    
-    col_name = Symbol("T-$ball_section")
-    field_goal_prob = field_goal_df[1, col_name]
-    #println("Field goal probability")
-    if field_goal_prob > 0
-        field_goal_made_val = field_goal_prob * run_play(
-            Int(time_remaining-1),
-            Int(score_diff + 3), 
-            timeouts_remaining,
-            25,
-            1,
-            10,
-            !offense_has_ball, 
-            is_first_half
-        )[1]
-        if ball_section < 10
-            field_goal_missed_val = (1-field_goal_prob) * run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                Int(100 - 10*ball_section-5),
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        else
-            field_goal_missed_val = (1-field_goal_prob)*run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                20,
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        end
-        #println("Field goal made val: $field_goal_made_val")
-        #println("Field goal missed val: $field_goal_missed_val")
-        field_attempt_val = field_goal_made_val + field_goal_missed_val
-    end
-    
+    # Field goal attempt value
+    field_attempt_val = field_goal_attempt(
+        time_remaining::Int,
+        score_diff::Int,
+        timeouts_remaining::Int,
+        ball_position::Int,
+        down::Int,
+        first_down_position::Int,
+        offense_has_ball::Bool,
+        is_first_half::Bool
+    )
     
     # Punt Decision
     println("\nPunt section")
@@ -399,15 +367,14 @@ field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
 decisions = ["Punt", "Field Goal", "No timeout", "Timeout"]
 
 
-plays_remaining = 2
+plays_remaining = 1
 score_diff = -1
 timeouts_remaining = 2
 ball_position = 75
 down = 1
 first_down_dist = 5
 offense_has_ball = true
-is_first_half = true
-
+is_first_half = true 
 
 @time play_value = run_play(
     plays_remaining, # Plays remaining 
