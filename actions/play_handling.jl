@@ -9,21 +9,13 @@ The type of play will be handled before this function is called.
 Type of play only impacts probabilities. Everything else can be calculated/infered
 """
 function play_value(
-    time_remaining::Int,
-    score_diff::Int,
-    timeouts_remaining::Int,
-    ball_position::Int,
-    down::Int,
-    first_down_position::Int,
-    offense_has_ball::Bool,
-    is_first_half::Bool,
-
-    probabilities::DataFrame,
+    current_state:: State,
+    probabilities:: DataFrame,
+    timeout_called:: Bool
 )
     play_value = 0
-
-    ball_section = Int(ceil(ball_position/10))
-    first_down_section = Int(ceil((first_down_position+ball_section)/10) + 1)
+    
+    first_down_section = Int(ceil((current_state.first_down_dist + current_state.ball_section)/10) + 1)
 
     for section in 1:10
         col_name = Symbol("T-$section")
@@ -37,44 +29,53 @@ function play_value(
             next_down = down + 1
         end
         if transition_prob > 0
-            play_value += transition_prob * run_play(
-                Int(time_remaining-1),
-                score_diff,
-                Int(timeouts_remaining-1),
-                Int(10*section - 5),
-                Int(next_down),
+            next_state = State(
+                current_state.plays_remaining - 1,
+                current_state.score_diff,
+                timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+                section,
+                next_down,
                 10,
-                down == 4 ? !offense_has_ball : offense_has_ball,
-                is_first_half
+                current_state.offense_has_ball,
+                current_state.is_first_half
+            )
+            play_value += transition_prob * run_play(
+                next_state
             )[1]
         end
     end
     # Pick six scenario
     pick_six_prob = probabilities[1,:"T-0"]
     if pick_six_prob > 0
-        play_value += pick_six_prob * run_play(
-            Int(time_remaining-1),
-            offense_has_ball ? Int(score_diff-7) : Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
+        next_state = State(
+            current_state.plays_remaining - 1,
+            Bool(current_state.offense_has_ball) ? current_state.score_diff - 7 : current_state.score_diff + 7,
+            timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+            3,
             1,
             10,
-            down == 4 ? !offense_has_ball : offense_has_ball,
-            is_first_half
+            current_state.offense_has_ball,
+            current_state.is_first_half
+        )
+        play_value += pick_six_prob * run_play(
+            next_state
         )[1]
     end
     # Touchdown scenario
     td_prob = probabilities[1,"T-11"]
     if td_prob > 0
-        play_value += td_prob * run_play(
-            Int(time_remaining-1),
-            Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
+        next_state = State(
+            current_state.plays_remaining - 1,
+            Bool(current_state.offense_has_ball) ? current_state.score_diff + 7 : current_state.score_diff - 7,
+            timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+            3,
             1,
             10,
-            down == 4 ? !offense_has_ball : offense_has_ball,
-            is_first_half
+            1 - current_state.offense_has_ball,
+            current_state.is_first_half
+        )
+        play_value += td_prob * run_play(
+            next_state
         )[1]
     end
     return play_value
