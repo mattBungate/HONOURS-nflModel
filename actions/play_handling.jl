@@ -15,18 +15,18 @@ function play_value(
 )
     play_value = 0
     
-    first_down_section = Int(ceil((current_state.first_down_dist + current_state.ball_section)/10) + 1)
+    first_down_section = Int(ceil((current_state.first_down_dist + current_state.ball_section)/SECTION_WIDTH) + 1)
 
-    for section in 1:10
+    for section in NON_SCORING_FIELD_SECTIONS
         col_name = Symbol("T-$section")
         transition_prob = probabilities[1, col_name]
         # Calculate what down it is and where the next down is
         if section >= first_down_section
             next_first_down = section + 1
-            next_down = 1
+            next_down = FIRST_DOWN
         else
             next_first_down = first_down_section
-            next_down = down + 1
+            next_down = current_state.down + 1
         end
         if transition_prob > 0
             next_state = State(
@@ -35,7 +35,7 @@ function play_value(
                 timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
                 section,
                 next_down,
-                10,
+                FIRST_DOWN_TO_GO,
                 current_state.offense_has_ball,
                 current_state.is_first_half
             )
@@ -49,11 +49,11 @@ function play_value(
     if pick_six_prob > 0
         next_state = State(
             current_state.plays_remaining - 1,
-            Bool(current_state.offense_has_ball) ? current_state.score_diff - 7 : current_state.score_diff + 7,
+            Bool(current_state.offense_has_ball) ? current_state.score_diff - TOUCHDOWN_SCORE : current_state.score_diff + TOUCHDOWN_SCORE,
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-            3,
-            1,
-            10,
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
             current_state.offense_has_ball,
             current_state.is_first_half
         )
@@ -66,11 +66,11 @@ function play_value(
     if td_prob > 0
         next_state = State(
             current_state.plays_remaining - 1,
-            Bool(current_state.offense_has_ball) ? current_state.score_diff + 7 : current_state.score_diff - 7,
+            Bool(current_state.offense_has_ball) ? current_state.score_diff + TOUCHDOWN_SCORE : current_state.score_diff - TOUCHDOWN_SCORE,
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-            3,
-            1,
-            10,
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )

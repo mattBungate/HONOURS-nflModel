@@ -3,6 +3,7 @@ using CSV
 using Distributions
 
 include("util/state.jl")
+include("util/constants.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
@@ -67,8 +68,7 @@ function state_value(
         (row[:"Timeout Used"] == 0),
         transition_df
     )
-    dummy_transition_prob = no_timeout_stats[1, Symbol("T-1")]
-    if !ismissing(dummy_transition_prob)
+    if nrow(no_timeout_stats) > 0
         no_timeout_value = play_value(
             state,
             no_timeout_stats,
@@ -87,8 +87,7 @@ function state_value(
             transition_df
         )
         # Check if we have stats for state 
-        dummy_transition_prob = timeout_stats[1, Symbol("T-1")]
-        if !ismissing(dummy_transition_prob)
+        if nrow(timeout_stats) > 0
             timeout_value = play_value(
                 state,
                 timeout_stats,
@@ -114,13 +113,8 @@ field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
-# Constants
-possible_downs = [1,2,3,4]
-field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
-PROB_TOL = 1.0e-8
-
 # Inputs
-plays_remaining = 8
+plays_remaining = 6
 score_diff = 0
 timeouts_remaining = 3
 ball_position = 3

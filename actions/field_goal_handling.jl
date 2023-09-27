@@ -12,16 +12,14 @@ function field_goal_attempt(
     current_state:: State,
     field_goal_prob::Float64
 )
-    field_goal_value = 0
-
     # Kick field goal outcome
     next_state = State(
         current_state.plays_remaining - 1,
-        Bool(current_state.offense_has_ball) ? current_state.score_diff + 3 : current_state.score_diff - 3,
+        Bool(current_state.offense_has_ball) ? current_state.score_diff + FIELD_GOAL_SCORE : current_state.score_diff - FIELD_GOAL_SCORE,
         current_state.timeouts_remaining,
-        3,
-        1, 
-        10,
+        TOUCHBACK_SECTION,
+        FIRST_DOWN, 
+        FIRST_DOWN_TO_GO,
         1 - current_state.offense_has_ball,
         current_state.is_first_half
     )
@@ -29,14 +27,14 @@ function field_goal_attempt(
         next_state
     )[1]
     # Missed field goal outcome
-    if current_state.ball_section < 10
+    if current_state.ball_section < FIELD_GOAL_MERCY_SECTION
         next_state = State(
             current_state.plays_remaining - 1,
             current_state.score_diff,
             current_state.timeouts_remaining,
             11 - current_state.ball_section,
-            1,
-            10,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
@@ -48,9 +46,9 @@ function field_goal_attempt(
             current_state.plays_remaining - 1,
             current_state.score_diff,
             current_state.timeouts_remaining,
-            3,
-            1,
-            10,
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
