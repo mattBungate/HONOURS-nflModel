@@ -39,7 +39,7 @@ function play_value(
                 current_state.offense_has_ball,
                 current_state.is_first_half
             )
-            play_value += transition_prob * run_play(
+            play_value += transition_prob * state_value(
                 next_state
             )[1]
         end
@@ -57,7 +57,7 @@ function play_value(
             current_state.offense_has_ball,
             current_state.is_first_half
         )
-        play_value += pick_six_prob * run_play(
+        play_value += pick_six_prob * state_value(
             next_state
         )[1]
     end
@@ -74,7 +74,7 @@ function play_value(
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
-        play_value += td_prob * run_play(
+        play_value += td_prob * state_value(
             next_state
         )[1]
     end

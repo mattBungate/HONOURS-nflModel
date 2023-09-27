@@ -2,7 +2,7 @@ using DataFrames
 using CSV 
 using Distributions
 
-include("state.jl")
+include("util/state.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
@@ -18,7 +18,7 @@ ball_position: 0-99 value for dist to goal. This is rounded in function to a sec
 down: 0,1,2,4 for what down the play is on
 first_down_position: 0-99 value for how far first down is from ball. This will be rounded in function to a section
 """
-function run_play(
+function state_value(
     state:: State
 )
     # Base cases
@@ -37,8 +37,8 @@ function run_play(
         end
     end
 
-    if haskey(position_val_dict, state)
-        return position_val_dict[state]
+    if haskey(state_values, state)
+        return state_values[state]
     end
     
     # Initialise arrays to store action space and associated values
@@ -98,8 +98,12 @@ function run_play(
         end
     end
     
-    # Get the optimal action and its value and return
+    # Get the optimal action and its value
     optimal_decision = findmax(action_space)
+
+    # Store the optimal decision
+    state_values[state] = optimal_decision
+
     return optimal_decision
 end
 
@@ -116,7 +120,7 @@ field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
 PROB_TOL = 1.0e-8
 
 # Inputs
-plays_remaining = 4
+plays_remaining = 8
 score_diff = 0
 timeouts_remaining = 3
 ball_position = 3
@@ -136,12 +140,13 @@ initial_state = State(
     is_first_half
 )
 
-position_val_dict = Dict{Vector{Int}, Tuple{Float64, String}}()
+state_values = Dict{State, Tuple{Float64, String}}()
 
 println("Plays remaining: $plays_remaining")
-@time play_value_calc = run_play(
+@time play_value_calc = state_value(
     initial_state
 )
+println(length(state_values))
 
 play_value_rounded = round(play_value_calc[1], digits=2)
 play_type = play_value_calc[2]

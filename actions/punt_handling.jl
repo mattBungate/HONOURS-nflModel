@@ -40,7 +40,7 @@ function punt_value(
                     current_state.offense_has_ball,
                     current_state.is_first_half
                 )
-                punt_val += section_probs[1] * run_play(
+                punt_val += section_probs[1] * state_value(
                     next_state
                 )[1]
             else
@@ -54,7 +54,7 @@ function punt_value(
                     1 - current_state.offense_has_ball,
                     current_state.is_first_half
                 )
-                punt_val += section_probs[end_section + 1] * run_play(
+                punt_val += section_probs[end_section + 1] * state_value(
                     next_state
                 )[1]
             end

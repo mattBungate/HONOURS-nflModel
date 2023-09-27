@@ -25,7 +25,7 @@ function field_goal_attempt(
         1 - current_state.offense_has_ball,
         current_state.is_first_half
     )
-    field_goal_made_val = field_goal_prob * run_play(
+    field_goal_made_val = field_goal_prob * state_value(
         next_state
     )[1]
     # Missed field goal outcome
@@ -40,7 +40,7 @@ function field_goal_attempt(
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
-        field_goal_missed_val = (1-field_goal_prob) * run_play(
+        field_goal_missed_val = (1-field_goal_prob) * state_value(
             next_state
         )[1]
     else
@@ -54,7 +54,7 @@ function field_goal_attempt(
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
-        field_goal_missed_val = (1-field_goal_prob)*run_play(
+        field_goal_missed_val = (1-field_goal_prob)*state_value(
             next_state
         )[1]
     end
