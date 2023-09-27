@@ -15,8 +15,6 @@ function play_value(
 )
     play_value = 0
 
-    #first_down_section = ceil(current_state.ball_section + current_state.first_down_dist/SECTION_WIDTH) + 1
-
     for section in NON_SCORING_FIELD_SECTIONS
         col_name = Symbol("T-$section")
         transition_prob = probabilities[1, col_name]
@@ -37,7 +35,7 @@ function play_value(
                     timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
                     section,
                     next_down,
-                    section + 1,
+                    next_down == 1 ? section + 1 : current_state.first_down_section,
                     current_state.offense_has_ball,
                     current_state.is_first_half
                 )
