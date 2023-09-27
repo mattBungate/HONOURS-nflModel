@@ -1,5 +1,5 @@
 # Optimal Play Calling and Time Management in the NFL
-## V.1.0.0: Initial model
+## Version 2: Initial model
 
 This is my honours project. I am using dynamic programming to create a model that can determine the value of a position in American football and provide the most optimal decision in that position. 
 
@@ -32,12 +32,21 @@ The model is created in julia. More details on formulation can be found in overl
 
 ---
 
-### Version Major Changes | V.1.0.0
-This is the development of the initial model.
+### Version Major Changes | V.1.5.1 -> V.2.0.0
+The focus of this version is implementing a proper sense of time to the model. The main difference will be changing State.plays_remaining to State.seconds_remaining. This also allows a game clock to be implemented. With these two changes the model can begin optimising time management. With this in mind, the action space will also be expanded to include time sensitive plays
 
 #### Implementation:
-- [x] Recursive function: Calculates the value of the state and the optimal decision: All state space can be inputted into function
-- [x] Action space functions: Function for each action that is called in recursive function
-- [ ] Memoization
-- [ ] Change inputs into 1 state space object
-- [ ] Ensure defense is properly implemented (does not have timeout option but can play, punt or field goal. Ensure state transitions are correct)
+##### Plays to Seconds
+- [ ] Update data_processing.py to include probabilities to include length of play
+- [ ] Change State.plays_remaining to State.seconds_remaining
+- [ ] Update all action functions to account for State change
+##### Game Clock
+- [ ] Add binary indicator to State to represent whether the clock is ticking or not
+- [ ] Add data about the typical time between plays
+- [ ] Change action functions to account for new binary indicator & clock
+##### Expanding Action Space
+- [ ] Spike
+- [ ] Kneel
+- [ ] Kneel out game (new terminal case)
+- [ ] Use minimal time for play
+- [ ] Run down clock with plays
