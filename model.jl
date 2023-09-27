@@ -56,6 +56,7 @@ function field_goal_attempt(
             )[1]
         end
     else
+        # This is not right
         field_goal_made_val = 0
         if ball_section < 10
             field_goal_missed_val = run_play(
@@ -141,8 +142,79 @@ function punt_value(
     return punt_val
 end
 
+function play_value(
+    time_remaining::Int,
+    score_diff::Int,
+    timeouts_remaining::Int,
+    ball_position::Int,
+    down::Int,
+    first_down_position::Int,
+    offense_has_ball::Bool,
+    is_first_half::Bool,
 
-position_val_dict = Dict{Vector{Int}, Tuple{Float64, String}}()
+    probabilities::DataFrame
+)
+    play_value = 0
+
+    ball_section = Int(ceil(ball_position/10))
+    first_down_section = ceil((first_down_position+ball_section)/10) + 1 
+
+    for section in 1:10
+        col_name = Symbol("T-$section")
+        transition_prob = probabilities[1, col_name]
+        # Calculate what down it is and where the next down is
+        if section >= first_down_section
+            next_first_down = section + 1
+            next_down = 1
+        else
+            next_first_down = first_down_section 
+            next_down = down + 1
+        end
+        if transition_prob > 0
+            play_value += transition_prob * run_play(
+                Int(time_remaining-1),
+                score_diff,
+                Int(timeouts_remaining-1),
+                Int(10*section - 5),
+                Int(next_down),
+                10,
+                down == 4 ? !offense_has_ball : offense_has_ball,
+                is_first_half
+            )[1]
+        end
+    end
+    # Pick six scenario 
+    pick_six_prob = probabilities[1,:"T-0"]
+    if pick_six_prob > 0
+        play_value += pick_six_prob * run_play(
+            Int(time_remaining-1),
+            offense_has_ball ? Int(score_diff-7) : Int(score_diff+7),
+            Int(timeouts_remaining-1),
+            25,
+            1,
+            10,
+            down == 4 ? !offense_has_ball : offense_has_ball,
+            is_first_half
+        )[1]
+    end
+    # Touchdown scenario
+    td_prob = probabilities[1,"T-11"]
+    if td_prob > 0
+        play_value += td_prob * run_play(
+            Int(time_remaining-1),
+            Int(score_diff+7),
+            Int(timeouts_remaining-1),
+            25,
+            1,
+            10,
+            down == 4 ? !offense_has_ball : offense_has_ball, # Changes team that has ball is 4th down
+            is_first_half
+        )[1]
+    end
+    return play_value
+end
+
+
 """
 Runs a play and returns position value and optimal play. 
 
@@ -163,20 +235,20 @@ function run_play(
     first_down_position::Int,
     offense_has_ball::Bool,
     is_first_half::Bool
-) 
-
+)
     # Base cases
     if time_remaining <= 0
         # First half maximise points
         if is_first_half
-            return score_diff, ""
+            return score_diff, "End 1st half"
         end
         # Second half maximise winning
         if score_diff > 0
-            #println("Winner winner chicken dinner")
-            return 100, ""
+            return 100, "End Game"
+        elseif score_diff == 0
+            return 50, "End Game"
         else
-            return 0, ""
+            return 0, "End Game"
         end
     end
     
@@ -220,7 +292,6 @@ function run_play(
     )
     
     # Punt Decision
-    println("\nPunt section")
     punt_val = punt_value(
         time_remaining::Int,
         score_diff::Int,
@@ -233,74 +304,25 @@ function run_play(
     )
 
     # No timeout calculation
-    println("\nNo timeout cacluations")
-    no_timeout_value = 0
     no_timeout_stats = filter(row ->
         (row[:"Down"] == down) &
         (row[:"Field Section"] == ball_section) &
         (row[:"Timeout Used"] == 0),
         transition_df
     )
-    for section in 1:10
-        col_name = Symbol("T-$section")
-        transition_prob = no_timeout_stats[1, col_name]
-        # Calculate what down it is and where the next down is
-        if section >= first_down_section
-            next_first_down = section + 1
-            next_down = 1
-        else
-            next_first_down = first_down_section 
-            next_down = down + 1
-        end
-        if transition_prob > 0
-            #println("Section $section has prob $transition_prob")
-            no_timeout_value += transition_prob * run_play(
-                Int(time_remaining-1),
-                score_diff,
-                Int(timeouts_remaining-1),
-                Int(10*section - 5),
-                Int(next_down),
-                10,
-                down == 4 ? !offense_has_ball : offense_has_ball,
-                is_first_half
-            )[1]
-        end
-    end
-    # Pick six scenario 
-    pick_six_prob = no_timeout_stats[1,:"T-0"]
-    #println("Pick six has odds $pick_six_prob")
-    if pick_six_prob > 0
-        no_timeout_value += pick_six_prob * run_play(
-            Int(time_remaining-1),
-            offense_has_ball ? Int(score_diff-7) : Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
-            1,
-            10,
-            down == 4 ? !offense_has_ball : offense_has_ball,
-            is_first_half
-        )[1]
-    end
-
-    # Touchdown scenario
-    td_prob = no_timeout_stats[1,"T-11"]
-    #println("TD has prob $td_prob")
-    if td_prob > 0
-        no_timeout_value += td_prob * run_play(
-            Int(time_remaining-1),
-            Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
-            1,
-            10,
-            down == 4 ? !offense_has_ball : offense_has_ball, # Changes team that has ball is 4th down
-            is_first_half
-        )[1]
-    end
-
+    no_timeout_value = play_value(
+        time_remaining,
+        score_diff,
+        timeouts_remaining,
+        ball_position,
+        down,
+        first_down_position,
+        offense_has_ball,
+        is_first_half,
+        no_timeout_stats
+    )
     # Timeout calculations
-    println("\nTimeout calculations")
-    timeout_value = 0
+    timeout_value = 0 # this is also wrong. If all other decisions have negative play value, this would be max
     if timeouts_remaining > 0 && offense_has_ball # Only allow timeout for offense if timeouts available
         # Retrieve the row for prob of down, position & timeout
         timeout_stats = filter(row ->
@@ -309,108 +331,70 @@ function run_play(
             (row[:"Timeout Used"] == 1),
             transition_df
         )
-        # Handle no score scenario 
-        for section in 1:10
-            col_name = Symbol("T-$section")
-            transition_prob = timeout_stats[1, col_name]
-            # Calculate what down it is and where the next down is
-            if section >= first_down_section
-                next_first_down = section + 1
-                next_down = 1
-            else
-                next_first_down = first_down_section 
-                next_down = down + 1
-            end
-            if transition_prob > 0
-                #println("Section $section has prob $transition_prob")
-                timeout_value += transition_prob * run_play(
-                    Int(time_remaining-1),
-                    score_diff,
-                    Int(timeouts_remaining-1),
-                    Int(section*10 - 5),
-                    Int(next_down),
-                    10,
-                    offense_has_ball,
-                    is_first_half
-                )[1]
-            end
-        end
-        # Pick six scenario 
-        pick_six_prob = timeout_stats[1,:"T-0"]
-        #println("Pick six has prob: $pick_six_prob")
-        if pick_six_prob > 0
-            timeout_value += pick_six_prob * run_play(
-                Int(time_remaining-1),
-                Int(score_diff-7),
-                Int(timeouts_remaining-1),
-                25,
-                1,
-                25,
-                offense_has_ball,
-                is_first_half
-            )[1]
-        end
-
-        td_prob = timeout_stats[1,"T-11"]
-        #println("TD has prob: $td_prob")
-        if td_prob > 0
-            timeout_value += td_prob * run_play(
-                Int(time_remaining-1),
-                Int(score_diff+7),
-                Int(timeouts_remaining-1),
-                25,
-                1,
-                10,
-                offense_has_ball,
-                is_first_half
-            )[1]
-        end
+        timeout_value = play_value(
+            time_remaining,
+            score_diff,
+            timeouts_remaining,
+            ball_position,
+            down,
+            first_down_position,
+            offense_has_ball,
+            is_first_half,
+            timeout_stats
+        )
     end
-    println("\nPunt value: $punt_val")
-    println("Field goal value: $field_attempt_val")
-    println("No timeout value: $no_timeout_value")
-    println("Timeout value: $timeout_value")
+    
+    # Get the optimal decision and return position value & optimal decision
+    """
+    println("Decision values")
+    println("Punt_value: $punt_val")
+    println("Field Goal value: $field_attempt_val")
+    println("Play (no timeout): $no_timeout_value")
+    println("Play (timeout): $timeout_value\n")
+    """
     position_value, decision_index = findmax([punt_val, field_attempt_val, no_timeout_value, timeout_value])
-    decision = decisions[decision_index]
-    println("\nReturning: $position_value | $decision")
     return position_value, decisions[decision_index]
 end
 
-PROB_TOL = 1.0e-8
 
+# Data
 transition_df = CSV.File("stats.csv") |> DataFrame 
 field_goal_df = CSV.File("field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
+position_val_dict = Dict{Vector{Int}, Tuple{Float64, String}}()
+
 # Constants
 possible_downs = [1,2,3,4]
 field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
 decisions = ["Punt", "Field Goal", "No timeout", "Timeout"]
+PROB_TOL = 1.0e-8
 
-
-plays_remaining = 1
-score_diff = -1
-timeouts_remaining = 2
-ball_position = 75
+# Inputs
+plays_remaining = 3
+score_diff = 0
+timeouts_remaining = 3
+ball_position = 25
 down = 1
-first_down_dist = 5
+first_down_dist = 10
 offense_has_ball = true
 is_first_half = true 
 
-@time play_value = run_play(
-    plays_remaining, # Plays remaining 
-    score_diff, # Score diff 
-    timeouts_remaining, # Timeouts remaining 
-    ball_position, # Ball position 
-    down, # Down 
-    first_down_dist,  # First down section
-    offense_has_ball,   # Offense has ball
-    is_first_half
+#println("Plays remaining: $plays_remaining")
+@time play_value_calc = run_play(
+    plays_remaining,        # Plays remaining 
+    score_diff,             # Score diff 
+    timeouts_remaining,     # Timeouts remaining 
+    ball_position,          # Ball position 
+    down,                   # Down 
+    first_down_dist,        # First down section
+    offense_has_ball,       # Offense has ball
+    is_first_half           # First/second half
 )
 
-play_value_rounded = round(play_value[1], digits=2)
-play_type = play_value[2]
+play_value_rounded = round(play_value_calc[1], digits=2)
+play_type = play_value_calc[2]
 
 if is_first_half
     println("\n\nThe expected score differential for this position if played optimally is $play_value_rounded")
