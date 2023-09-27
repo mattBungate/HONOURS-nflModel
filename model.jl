@@ -2,219 +2,9 @@ using DataFrames
 using CSV 
 using Distributions
 
-"""
-Runs a field goal attempt and returns the position value considering the outcomes
-"""
-function field_goal_attempt(
-    time_remaining::Int,
-    score_diff::Int,
-    timeouts_remaining::Int,
-    ball_position::Int,
-    down::Int,
-    first_down_position::Int,
-    offense_has_ball::Bool,
-    is_first_half::Bool
-)
-    field_goal_value = 0
-    # field goal probability
-    ball_section = Int(ceil(ball_position/10))
-    col_name = Symbol("T-$ball_section")
-    field_goal_prob = field_goal_df[1, col_name]
-    # Kick field goal prob
-    if field_goal_prob > PROB_TOL
-        field_goal_made_val = field_goal_prob * run_play(
-            Int(time_remaining-1),
-            Int(score_diff + 3), 
-            timeouts_remaining,
-            25,
-            1,
-            10,
-            !offense_has_ball, 
-            is_first_half
-        )[1]
-        if ball_section < 10
-            field_goal_missed_val = (1-field_goal_prob) * run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                Int(100 - 10*ball_section-5),
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        else
-            field_goal_missed_val = (1-field_goal_prob)*run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                20,
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        end
-    else
-        # This is not right
-        field_goal_made_val = 0
-        if ball_section < 10
-            field_goal_missed_val = run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                Int(100 - 10*ball_section-5),
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        else
-            field_goal_missed_val = run_play(
-                Int(time_remaining-1),
-                score_diff,
-                timeouts_remaining,
-                20,
-                1,
-                10,
-                !offense_has_ball,
-                is_first_half
-            )[1]
-        end
-    end
-    field_goal_value = field_goal_missed_val + field_goal_made_val 
-    return field_goal_value
-end
-
-function punt_value(
-    time_remaining::Int,
-    score_diff::Int,
-    timeouts_remaining::Int,
-    ball_position::Int,
-    down::Int,
-    first_down_position::Int,
-    offense_has_ball::Bool,
-    is_first_half::Bool
-)
-    punt_val = 0
-
-    ball_section = Int(ceil(ball_position/10))
-
-    section_probs = []
-    for end_section in field_sections
-        if end_section == 0
-            push!(section_probs, cdf(punt_dist, -ball_section*10 + 5))
-        elseif end_section == 11
-            section_probs[8+1] += 1 - cdf(punt_dist, 10*(11-ball_section)-5) # If punt goes into end zone its an atuo touchback
-        else
-            push!(section_probs, cdf(punt_dist, 10*(end_section-ball_section) + 5) - cdf(punt_dist, 10*(end_section-ball_section)-5))
-        end
-    end
-
-    for end_section in 0:10
-        if section_probs[end_section + 1] > PROB_TOL
-            if end_section == 0 # If other team scores off punt return
-                punt_val += section_probs[1] * run_play(
-                    Int(time_remaining - 1),
-                    offense_has_ball ? Int(score_diff - 7) : Int(score_diff + 7), 
-                    timeouts_remaining,
-                    25, # Assumes touchback from kickoff
-                    1, 
-                    10,
-                    offense_has_ball,
-                    is_first_half
-                )[1]
-            else
-                punt_val += section_probs[end_section + 1] * run_play(
-                    Int(time_remaining - 1),
-                    score_diff, 
-                    timeouts_remaining,
-                    end_section,
-                    1,
-                    10,
-                    !offense_has_ball,
-                    is_first_half
-                )[1]
-            end
-        end
-    end
-
-    return punt_val
-end
-
-function play_value(
-    time_remaining::Int,
-    score_diff::Int,
-    timeouts_remaining::Int,
-    ball_position::Int,
-    down::Int,
-    first_down_position::Int,
-    offense_has_ball::Bool,
-    is_first_half::Bool,
-
-    probabilities::DataFrame,
-)
-    play_value = 0
-
-    
-    ball_section = Int(ceil(ball_position/10))
-    first_down_section = Int(ceil((first_down_position+ball_section)/10) + 1)
-
-    for section in 1:10
-        col_name = Symbol("T-$section")
-        transition_prob = probabilities[1, col_name]
-        # Calculate what down it is and where the next down is
-        if section >= first_down_section
-            next_first_down = section + 1
-            next_down = 1
-        else
-            next_first_down = first_down_section 
-            next_down = down + 1
-        end
-        if transition_prob > 0
-            play_value += transition_prob * run_play(
-                Int(time_remaining-1),
-                score_diff,
-                Int(timeouts_remaining-1),
-                Int(10*section - 5),
-                Int(next_down),
-                10,
-                down == 4 ? !offense_has_ball : offense_has_ball,
-                is_first_half
-            )[1]
-        end
-    end
-    # Pick six scenario 
-    pick_six_prob = probabilities[1,:"T-0"]
-    if pick_six_prob > 0
-        play_value += pick_six_prob * run_play(
-            Int(time_remaining-1),
-            offense_has_ball ? Int(score_diff-7) : Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
-            1,
-            10,
-            down == 4 ? !offense_has_ball : offense_has_ball,
-            is_first_half
-        )[1]
-    end
-    # Touchdown scenario
-    td_prob = probabilities[1,"T-11"]
-    if td_prob > 0
-        play_value += td_prob * run_play(
-            Int(time_remaining-1),
-            Int(score_diff+7),
-            Int(timeouts_remaining-1),
-            25,
-            1,
-            10,
-            down == 4 ? !offense_has_ball : offense_has_ball, # Changes team that has ball is 4th down
-            is_first_half
-        )[1]
-    end
-    return play_value
-end
-
+include("actions/punt_handling.jl")
+include("actions/field_goal_handling.jl")
+include("actions/play_handling.jl")
 
 """
 Runs a play and returns position value and optimal play. 
@@ -289,14 +79,15 @@ function run_play(
     field_goal_prob = field_goal_df[1, col_name]
     if field_goal_prob > PROB_TOL
         field_attempt_val = field_goal_attempt(
-            time_remaining::Int,
-            score_diff::Int,
-            timeouts_remaining::Int,
-            ball_position::Int,
-            down::Int,
-            first_down_position::Int,
-            offense_has_ball::Bool,
-            is_first_half::Bool
+            time_remaining,
+            score_diff,
+            timeouts_remaining,
+            ball_position,
+            down,
+            first_down_position,
+            offense_has_ball,
+            is_first_half,
+            field_goal_prob
         )
         action_space["Field Goal"] = field_attempt_val
     end
@@ -321,18 +112,21 @@ function run_play(
         (row[:"Timeout Used"] == 0),
         transition_df
     )
-    no_timeout_value = play_value(
-        time_remaining,
-        score_diff,
-        timeouts_remaining,
-        ball_position,
-        down,
-        first_down_section,
-        offense_has_ball,
-        is_first_half,
-        no_timeout_stats
-    )
-    action_space["Play No Timeout"] = no_timeout_value
+    dummy_transition_prob = no_timeout_stats[1, Symbol("T-1")]
+    if !ismissing(dummy_transition_prob)
+        no_timeout_value = play_value(
+            time_remaining,
+            score_diff,
+            timeouts_remaining,
+            ball_position,
+            down,
+            first_down_section,
+            offense_has_ball,
+            is_first_half,
+            no_timeout_stats
+        )
+        action_space["Play No Timeout"] = no_timeout_value
+    end
     # Timeout calculations
     if timeouts_remaining > 0 && offense_has_ball # Only allow timeout for offense if timeouts available
         # Retrieve the row for prob of down, position & timeout
@@ -342,18 +136,22 @@ function run_play(
             (row[:"Timeout Used"] == 1),
             transition_df
         )
-        timeout_value = play_value(
-            time_remaining,
-            score_diff,
-            timeouts_remaining,
-            ball_position,
-            down,
-            first_down_section,
-            offense_has_ball,
-            is_first_half,
-            timeout_stats
-        )
-        action_space["Play Timeout"] = timeout_value
+        # Check if we have stats for state 
+        dummy_transition_prob = timeout_stats[1, Symbol("T-1")]
+        if !ismissing(dummy_transition_prob)
+            timeout_value = play_value(
+                time_remaining,
+                score_diff,
+                timeouts_remaining,
+                ball_position,
+                down,
+                first_down_section,
+                offense_has_ball,
+                is_first_half,
+                timeout_stats
+            )
+            action_space["Play Timeout"] = timeout_value
+        end
     end
     
     # Get the optimal action and its value and return
@@ -363,9 +161,9 @@ end
 
 
 # Data
-transition_df = CSV.File("stats.csv") |> DataFrame 
-field_goal_df = CSV.File("field_goal_stats.csv") |> DataFrame
-punt_df = CSV.File("punt_stats.csv") |> DataFrame
+transition_df = CSV.File("processed_data/stats.csv") |> DataFrame 
+field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
+punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Constants
@@ -374,12 +172,12 @@ field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
 PROB_TOL = 1.0e-8
 
 # Inputs
-plays_remaining = 3
+plays_remaining = 1
 score_diff = 0
 timeouts_remaining = 3
-ball_position = 25
-down = 1
-first_down_dist = 10
+ball_position = 95
+down = 4
+first_down_dist = 5
 offense_has_ball = true
 is_first_half = true 
 

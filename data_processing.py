@@ -17,7 +17,7 @@ def calculate_stats():
     print("CSV file read")
     df_size = len(pbp_df.index)
 
-    possible_downs = [1,2,3]
+    possible_downs = [1,2,3,4]
     field_sections = [i for i in range(12)]
     timeout_used_options = [0,1]
 
@@ -38,7 +38,6 @@ def calculate_stats():
 
     # Iterate through each row
     for index, row in pbp_df.iterrows():
-        """
         if index % 10000 == 0:
             print(f'{index} | {round(100*index/df_size,4)}')
         # Was this a valid play (only look at run or pass plays for now)
@@ -52,8 +51,8 @@ def calculate_stats():
             else:
                 timeout_used = 0
             
-            # Skip any plays that go for it on 4th down
-            if math.isnan(down) or down == 4 or math.isnan(starting_position) or math.isnan(row['yards_gained']): 
+            # Skip any plays that have nan values
+            if math.isnan(down) or math.isnan(starting_position) or math.isnan(row['yards_gained']): 
                 continue
             # Store the yards gained.
             try:    
@@ -77,7 +76,6 @@ def calculate_stats():
                 punt_return_nan_counter += 1
             else:
                 punt_return_yards.append(row['return_yards'])
-        """
         # Field goal data
         if row["play_type"] == "field_goal":
             # Get the field section
@@ -89,8 +87,6 @@ def calculate_stats():
             else:
                 field_goal_attempts[section].append(0)
 
-            
-    
     # Create transition probabilities
     stats_df = pd.DataFrame(columns=['Down', 'Field Section', 'Timeout Used', 'T-0', 'T-1', 'T-2', 'T-3', 'T-4', 'T-5', 'T-6', 'T-7', 'T-8', 'T-9', 'T-10', 'T-11'])
 
@@ -101,7 +97,7 @@ def calculate_stats():
             if section == 0 or section == 11:
                 continue
             for timeout in timeout_used_options:
-                mean = np.mean(yards_gained[down, section, timeout])
+                mean = np.mean(yards_gained[(down, section, timeout)])
                 std = np.std(yards_gained[down, section, timeout])
 
                 normal_dist = norm(loc=mean, scale=std)
@@ -117,6 +113,8 @@ def calculate_stats():
                     # Hanlde no score
                     else:
                         probs.append(normal_dist.cdf((end_section - section)*10 + 5) - normal_dist.cdf((end_section - section)*10 - 5))
+
+
                 df_entry = [down, section, timeout] + probs
                 stats_df.loc[num_calculated] = df_entry
 
@@ -127,14 +125,11 @@ def calculate_stats():
     punt_return_df = pd.DataFrame(columns=["Mean", "Average"])
     punt_return_df.loc[1] = [np.mean(punt_yards) - np.mean(punt_return_yards), np.sqrt(np.std(punt_yards)**2 + np.std(punt_return_yards)**2)]
     punt_return_df.to_csv('punt_stats.csv')
-    end_time = time.time()
 
     # Create field goal data
     field_goal_df = pd.DataFrame(columns=['T-1', 'T-2', 'T-3', 'T-4', 'T-5', 'T-6', 'T-7', 'T-8', 'T-9', 'T-10'])
     df_entry = []
-    i = 0
     for section in field_sections:
-        i += 1
         if section == 0 or section == 11:
             continue 
         fg_attempts = len(field_goal_attempts[section])
@@ -144,12 +139,13 @@ def calculate_stats():
         else:
             fg_made = np.sum(field_goal_attempts[section])
             df_entry.append(fg_made/fg_attempts)
-    field_goal_df.loc[1] = df_entry.reverse()
+    df_entry_reversed = df_entry.reverse()
+    field_goal_df.loc[1] = df_entry_reversed
 
     field_goal_df.to_csv('field_goal_stats.csv')
 
+    end_time = time.time()
 
     print(f'Time to run calculate_stats(): {end_time - start_time}')
-
 
 calculate_stats()
