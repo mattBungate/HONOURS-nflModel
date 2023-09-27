@@ -39,7 +39,7 @@ function punt_value(
                     current_state.timeouts_remaining,
                     TOUCHBACK_SECTION,
                     FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
+                    TOUCHBACK_SECTION + 1,
                     current_state.offense_has_ball,
                     current_state.is_first_half
                 )
@@ -53,7 +53,7 @@ function punt_value(
                     current_state.timeouts_remaining,
                     end_section,
                     FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
+                    end_section + 1,
                     1 - current_state.offense_has_ball,
                     current_state.is_first_half
                 )

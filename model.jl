@@ -75,10 +75,16 @@ function state_value(
             false
         )
         action_space["Play No Timeout"] = no_timeout_value
+    else
+        down = state.down
+        ball_section = state.ball_section
+        println("No data for NO timeout & ($down, $ball_section)")
     end
 
     # Timeout calculations
-    if state.timeouts_remaining > 0 && Bool(state.offense_has_ball)     # Only allow timeout for offense if timeouts available
+
+    # Only allow timeout for offense if timeouts available
+    if state.timeouts_remaining > 0 && Bool(state.offense_has_ball)     
         # Retrieve the row for prob of down, position & timeout
         timeout_stats = filter(row ->
             (row[:"Down"] == state.down) &
@@ -86,7 +92,6 @@ function state_value(
             (row[:"Timeout Used"] == 1),
             transition_df
         )
-        # Check if we have stats for state 
         if nrow(timeout_stats) > 0
             timeout_value = play_value(
                 state,
@@ -94,6 +99,12 @@ function state_value(
                 true
             )
             action_space["Play Timeout"] = timeout_value
+        else 
+            # This skips over 4th down, section 10 timeout called
+            # There are no instances of this is the dataset
+            down = state.down
+            ball_section = state.ball_section
+            println("No data for timeout & ($down, $ball_section)")
         end
     end
     
@@ -114,12 +125,12 @@ punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Inputs
-plays_remaining = 6
+plays_remaining = 10
 score_diff = 0
 timeouts_remaining = 3
-ball_position = 3
+ball_position = TOUCHBACK_SECTION
 down = 1
-first_down_dist = 10
+first_down_dist = TOUCHBACK_SECTION + 1
 offense_has_ball = 1
 is_first_half = 1
 

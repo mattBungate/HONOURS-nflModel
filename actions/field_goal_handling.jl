@@ -19,7 +19,7 @@ function field_goal_attempt(
         current_state.timeouts_remaining,
         TOUCHBACK_SECTION,
         FIRST_DOWN, 
-        FIRST_DOWN_TO_GO,
+        TOUCHBACK_SECTION + 1,
         1 - current_state.offense_has_ball,
         current_state.is_first_half
     )
@@ -34,7 +34,7 @@ function field_goal_attempt(
             current_state.timeouts_remaining,
             11 - current_state.ball_section,
             FIRST_DOWN,
-            FIRST_DOWN_TO_GO,
+            (11 - current_state.ball_section) + 1,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
@@ -48,7 +48,7 @@ function field_goal_attempt(
             current_state.timeouts_remaining,
             TOUCHBACK_SECTION,
             FIRST_DOWN,
-            FIRST_DOWN_TO_GO,
+            TOUCHBACK_SECTION + 1,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )

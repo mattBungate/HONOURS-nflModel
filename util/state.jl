@@ -14,7 +14,7 @@ struct State
     timeouts_remaining:: Int
     ball_section:: Int
     down:: Int
-    first_down_dist:: Int
+    first_down_section:: Int
     offense_has_ball:: Int
     is_first_half:: Int
 end

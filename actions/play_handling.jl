@@ -14,31 +14,61 @@ function play_value(
     timeout_called:: Bool
 )
     play_value = 0
-    
-    first_down_section = Int(ceil((current_state.first_down_dist + current_state.ball_section)/SECTION_WIDTH) + 1)
+
+    #first_down_section = ceil(current_state.ball_section + current_state.first_down_dist/SECTION_WIDTH) + 1
 
     for section in NON_SCORING_FIELD_SECTIONS
         col_name = Symbol("T-$section")
         transition_prob = probabilities[1, col_name]
-        # Calculate what down it is and where the next down is
-        if section >= first_down_section
-            next_first_down = section + 1
-            next_down = FIRST_DOWN
-        else
-            next_first_down = first_down_section
-            next_down = current_state.down + 1
-        end
+        # Transitions
         if transition_prob > 0
-            next_state = State(
-                current_state.plays_remaining - 1,
-                current_state.score_diff,
-                timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-                section,
-                next_down,
-                FIRST_DOWN_TO_GO,
-                current_state.offense_has_ball,
-                current_state.is_first_half
-            )
+            # Non 4th down handling
+            if current_state.down < 4
+                if section >= current_state.first_down_section
+                    next_first_down = section + 1
+                    next_down = FIRST_DOWN
+                else
+                    next_first_down = current_state.first_down_section
+                    next_down = current_state.down + 1
+                end
+                next_state = State(
+                    current_state.plays_remaining - 1,
+                    current_state.score_diff,
+                    timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+                    section,
+                    next_down,
+                    section + 1,
+                    current_state.offense_has_ball,
+                    current_state.is_first_half
+                )
+            else
+                # 4th down handling
+                if section >= current_state.first_down_section
+                    # Made it
+                    next_state = State(
+                        current_state.plays_remaining - 1,
+                        current_state.score_diff,
+                        timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+                        section,
+                        FIRST_DOWN,
+                        section + 1,
+                        current_state.offense_has_ball,
+                        current_state.is_first_half
+                    )
+                else
+                    # Short of 1st down
+                    next_state = State(
+                        current_state.plays_remaining - 1,
+                        current_state.score_diff,
+                        timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
+                        11 - section,
+                        FIRST_DOWN,
+                        11 - section + 1,
+                        1 - current_state.offense_has_ball,
+                        current_state.is_first_half
+                    )
+                end
+            end
             play_value += transition_prob * state_value(
                 next_state
             )[1]
@@ -53,7 +83,7 @@ function play_value(
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
             TOUCHBACK_SECTION,
             FIRST_DOWN,
-            FIRST_DOWN_TO_GO,
+            TOUCHBACK_SECTION + 1,
             current_state.offense_has_ball,
             current_state.is_first_half
         )
@@ -70,7 +100,7 @@ function play_value(
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
             TOUCHBACK_SECTION,
             FIRST_DOWN,
-            FIRST_DOWN_TO_GO,
+            TOUCHBACK_SECTION + 1,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
