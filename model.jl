@@ -12,12 +12,7 @@ include("actions/play_handling.jl")
 Finds the optimal action given a state and returns that action and the expected value if taken. 
 
 Parameters:
-time_remaining: How many plays remaining in game
-score_diff: Difference of scores between teams (team - opp)
-clock_ticking: 1 if clock ticking, 0 if not 
-ball_position: 0-99 value for dist to goal. This is rounded in function to a section
-down: 0,1,2,4 for what down the play is on
-first_down_position: 0-99 value for how far first down is from ball. This will be rounded in function to a section
+state: State space currently occupied.
 """
 function state_value(
     state:: State
@@ -125,7 +120,7 @@ punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Inputs
-plays_remaining = 10
+plays_remaining = 6
 score_diff = 0
 timeouts_remaining = 3
 ball_position = TOUCHBACK_SECTION
