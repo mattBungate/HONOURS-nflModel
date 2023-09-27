@@ -23,8 +23,8 @@ The model is created in julia. More details on formulation can be found in overl
 
 ---
 
-### Version Major Changes V.0.0.0 &rarr; V.1.0.0
-This is the initial model. Version 1 is the development of all the features above.
+### Version Major Changes | V.1.0.0
+This is the development of the initial model.
 
 #### Implementation:
 - [x] Recursive function: Calculates the value of the state and the optimal decision: All state space can be inputted into function
