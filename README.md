@@ -32,9 +32,3 @@ This is the development of the initial model.
 - [ ] Memoization
 - [ ] Change inputs into 1 state space object
 - [ ] Ensure defense is properly implemented (does not have timeout option but can play, punt or field goal. Ensure state transitions are correct)
-
-#### Errors
-- Reading csv file. There is an issure here that sometimes (very rarely) causes an error
-- Handling of values of decisions that are not in the action space/haven't been handle properly. 
-    - Timeouts: Shouldn't have a value if it cannot be called
-    - Field Goal: When field goal prob is 0 (too far out) if this action is taken it should be treated like a punt

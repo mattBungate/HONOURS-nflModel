@@ -152,12 +152,13 @@ function play_value(
     offense_has_ball::Bool,
     is_first_half::Bool,
 
-    probabilities::DataFrame
+    probabilities::DataFrame,
 )
     play_value = 0
 
+    
     ball_section = Int(ceil(ball_position/10))
-    first_down_section = ceil((first_down_position+ball_section)/10) + 1 
+    first_down_section = Int(ceil((first_down_position+ball_section)/10) + 1)
 
     for section in 1:10
         col_name = Symbol("T-$section")
@@ -254,7 +255,8 @@ function run_play(
     
     # Round ball_position & first_down_position to field sections
     ball_section = Int(ceil(ball_position/10))
-    first_down_section = ceil((first_down_position+ball_section)/10) + 1 # Must reach at least first down. +1 ensure this happens 
+    first_down_section = Int(ceil((first_down_position+ball_section)/10) + 1) # Must reach at least first down. +1 ensure this happens 
+
     if offense_has_ball
         offense_flag = 1
     else
@@ -279,17 +281,25 @@ function run_play(
         ]
     end
     
+    # Initialise arrays to store action space and associated values
+    action_space = Dict{String, Float64}()
+
     # Field goal attempt value
-    field_attempt_val = field_goal_attempt(
-        time_remaining::Int,
-        score_diff::Int,
-        timeouts_remaining::Int,
-        ball_position::Int,
-        down::Int,
-        first_down_position::Int,
-        offense_has_ball::Bool,
-        is_first_half::Bool
-    )
+    col_name = Symbol("T-$ball_section")
+    field_goal_prob = field_goal_df[1, col_name]
+    if field_goal_prob > PROB_TOL
+        field_attempt_val = field_goal_attempt(
+            time_remaining::Int,
+            score_diff::Int,
+            timeouts_remaining::Int,
+            ball_position::Int,
+            down::Int,
+            first_down_position::Int,
+            offense_has_ball::Bool,
+            is_first_half::Bool
+        )
+        action_space["Field Goal"] = field_attempt_val
+    end
     
     # Punt Decision
     punt_val = punt_value(
@@ -302,6 +312,7 @@ function run_play(
         offense_has_ball::Bool,
         is_first_half::Bool
     )
+    action_space["Punt"] = punt_val
 
     # No timeout calculation
     no_timeout_stats = filter(row ->
@@ -316,13 +327,13 @@ function run_play(
         timeouts_remaining,
         ball_position,
         down,
-        first_down_position,
+        first_down_section,
         offense_has_ball,
         is_first_half,
         no_timeout_stats
     )
+    action_space["Play No Timeout"] = no_timeout_value
     # Timeout calculations
-    timeout_value = 0 # this is also wrong. If all other decisions have negative play value, this would be max
     if timeouts_remaining > 0 && offense_has_ball # Only allow timeout for offense if timeouts available
         # Retrieve the row for prob of down, position & timeout
         timeout_stats = filter(row ->
@@ -337,23 +348,17 @@ function run_play(
             timeouts_remaining,
             ball_position,
             down,
-            first_down_position,
+            first_down_section,
             offense_has_ball,
             is_first_half,
             timeout_stats
         )
+        action_space["Play Timeout"] = timeout_value
     end
     
-    # Get the optimal decision and return position value & optimal decision
-    """
-    println("Decision values")
-    println("Punt_value: $punt_val")
-    println("Field Goal value: $field_attempt_val")
-    println("Play (no timeout): $no_timeout_value")
-    println("Play (timeout): $timeout_value\n")
-    """
-    position_value, decision_index = findmax([punt_val, field_attempt_val, no_timeout_value, timeout_value])
-    return position_value, decisions[decision_index]
+    # Get the optimal action and its value and return
+    optimal_decision = findmax(action_space)
+    return optimal_decision
 end
 
 
@@ -363,12 +368,9 @@ field_goal_df = CSV.File("field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
-position_val_dict = Dict{Vector{Int}, Tuple{Float64, String}}()
-
 # Constants
 possible_downs = [1,2,3,4]
 field_sections = [0,1,2,3,4,5,6,7,8,9,10,11]
-decisions = ["Punt", "Field Goal", "No timeout", "Timeout"]
 PROB_TOL = 1.0e-8
 
 # Inputs
@@ -381,7 +383,9 @@ first_down_dist = 10
 offense_has_ball = true
 is_first_half = true 
 
-#println("Plays remaining: $plays_remaining")
+position_val_dict = Dict{Vector{Int}, Tuple{Float64, String}}()
+
+println("Plays remaining: $plays_remaining")
 @time play_value_calc = run_play(
     plays_remaining,        # Plays remaining 
     score_diff,             # Score diff 
