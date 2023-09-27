@@ -6,7 +6,17 @@ This is my honours project. I am using dynamic programming to create a model tha
 ## Data
 The data is sourced from [nfl-data-py](https://pypi.org/project/nfl-data-py/). 
 Because the play-by-play data spans 1999-2023, it is a very large file and has not been included in the repository. 
-To install the play by play csv file, run `pip install nfl_data_py` then run the file install_pbp_data.py
+To install the play by play csv file, run `pip install nfl_data_py` then run the following code:
+
+```python
+import nfl_data_py as nfl
+import pandas as pd
+
+
+pbp_data = nfl.import_pbp_data(years=list(range(1999,2023)))
+
+pbp_data.to_csv("pbp_data.csv")
+```
 
 ## Data processing
 The data is processed using python. Values are stored in csv files. 
