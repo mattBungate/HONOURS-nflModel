@@ -4,10 +4,8 @@ import time
 import matplotlib.pyplot as plt
 import math
 
-from scipy.stats import norm    # Calculate and use skewnorm dist
-from scipy.optimize import curve_fit 
-
-import df_indexes as INDEX
+from scipy.stats import norm    # Calculate and use norm dist
+from scipy.optimize import curve_fit
 
 
 def calculate_stats():
