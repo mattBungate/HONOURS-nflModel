@@ -14,10 +14,10 @@ function punt_value(
 
     section_probs = []
     for end_section in FIELD_SECTIONS
-        if end_section == 0
+        if end_section == TOUCHDOWN_CONCEEDED_SECTION
             push!(section_probs, cdf(punt_dist, -current_state.ball_section*SECTION_WIDTH + SECTION_WIDTH/2))
-        elseif end_section == 11
-            section_probs[(11-TOUCHBACK_SECTION)+1] += 1 - cdf(punt_dist, SECTION_WIDTH*(11-current_state.ball_section)-SECTION_WIDTH/2) # If punt goes into end zone its an auto touchback
+        elseif end_section == TOUCHDOWN_SECTION
+            section_probs[(100-TOUCHBACK_SECTION)+1] += 1 - cdf(punt_dist, SECTION_WIDTH*(100-current_state.ball_section)-SECTION_WIDTH/2) # If punt goes into end zone its an auto touchback
         else
             push!(section_probs, 
                 cdf(punt_dist, SECTION_WIDTH*(end_section-current_state.ball_section) + SECTION_WIDTH/2) \
@@ -53,7 +53,7 @@ function punt_value(
                     current_state.timeouts_remaining,
                     end_section,
                     FIRST_DOWN,
-                    end_section + 1,
+                    end_section + FIRST_DOWN_TO_GO,
                     1 - current_state.offense_has_ball,
                     current_state.is_first_half
                 )

@@ -41,8 +41,8 @@ function state_value(
     action_space = Dict{String, Float64}()
 
     # Field goal attempt value
-    ball_section = state.ball_section
-    col_name = Symbol("T-$ball_section")
+    field_goal_section = Int(ceil(state.ball_section/10))
+    col_name = Symbol("T-$field_goal_section")
     field_goal_prob = field_goal_df[1, col_name]
     if field_goal_prob > PROB_TOL
         field_attempt_val = field_goal_attempt(
@@ -59,7 +59,7 @@ function state_value(
     # No timeout calculation
     no_timeout_stats = filter(row ->
         (row[:"Down"] == state.down) &
-        (row[:"Field Section"] == state.ball_section) &
+        (row[:"Position"] == state.ball_section) &
         (row[:"Timeout Used"] == 0),
         transition_df
     )
@@ -83,7 +83,7 @@ function state_value(
         # Retrieve the row for prob of down, position & timeout
         timeout_stats = filter(row ->
             (row[:"Down"] == state.down) &
-            (row[:"Field Section"] == state.ball_section) &
+            (row[:"Position"] == state.ball_section) &
             (row[:"Timeout Used"] == 1),
             transition_df
         )
@@ -114,18 +114,18 @@ end
 
 
 # Data
-transition_df = CSV.File("processed_data/stats.csv") |> DataFrame 
+transition_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame 
 field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Inputs
-plays_remaining = 6
+plays_remaining = 2
 score_diff = 0
 timeouts_remaining = 3
 ball_position = TOUCHBACK_SECTION
 down = 1
-first_down_dist = TOUCHBACK_SECTION + 1
+first_down_dist = TOUCHBACK_SECTION + FIRST_DOWN_TO_GO
 offense_has_ball = 1
 is_first_half = 1
 

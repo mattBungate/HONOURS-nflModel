@@ -19,11 +19,11 @@ function play_value(
         col_name = Symbol("T-$section")
         transition_prob = probabilities[1, col_name]
         # Transitions
-        if transition_prob > 0
+        if transition_prob > PROB_TOL
             # Non 4th down handling
             if current_state.down < 4
                 if section >= current_state.first_down_section
-                    next_first_down = section + 1
+                    next_first_down = section + FIRST_DOWN_TO_GO
                     next_down = FIRST_DOWN
                 else
                     next_first_down = current_state.first_down_section
@@ -35,7 +35,7 @@ function play_value(
                     timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
                     section,
                     next_down,
-                    next_down == 1 ? section + 1 : current_state.first_down_section,
+                    next_first_down,
                     current_state.offense_has_ball,
                     current_state.is_first_half
                 )
@@ -49,7 +49,7 @@ function play_value(
                         timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
                         section,
                         FIRST_DOWN,
-                        section + 1,
+                        section + FIRST_DOWN_TO_GO,
                         current_state.offense_has_ball,
                         current_state.is_first_half
                     )
@@ -59,9 +59,9 @@ function play_value(
                         current_state.plays_remaining - 1,
                         current_state.score_diff,
                         timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-                        11 - section,
+                        100 - section,
                         FIRST_DOWN,
-                        11 - section + 1,
+                        100 - section + FIRST_DOWN_TO_GO,
                         1 - current_state.offense_has_ball,
                         current_state.is_first_half
                     )
@@ -73,15 +73,15 @@ function play_value(
         end
     end
     # Pick six scenario
-    pick_six_prob = probabilities[1,:"T-0"]
-    if pick_six_prob > 0
+    pick_six_prob = probabilities[1,:"Def Endzone"]
+    if pick_six_prob > PROB_TOL
         next_state = State(
             current_state.plays_remaining - 1,
             Bool(current_state.offense_has_ball) ? current_state.score_diff - TOUCHDOWN_SCORE : current_state.score_diff + TOUCHDOWN_SCORE,
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
             TOUCHBACK_SECTION,
             FIRST_DOWN,
-            TOUCHBACK_SECTION + 1,
+            TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
             current_state.offense_has_ball,
             current_state.is_first_half
         )
@@ -90,15 +90,15 @@ function play_value(
         )[1]
     end
     # Touchdown scenario
-    td_prob = probabilities[1,"T-11"]
-    if td_prob > 0
+    td_prob = probabilities[1,"Off Endzone"]
+    if td_prob > PROB_TOL
         next_state = State(
             current_state.plays_remaining - 1,
             Bool(current_state.offense_has_ball) ? current_state.score_diff + TOUCHDOWN_SCORE : current_state.score_diff - TOUCHDOWN_SCORE,
             timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
             TOUCHBACK_SECTION,
             FIRST_DOWN,
-            TOUCHBACK_SECTION + 1,
+            TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )

@@ -8,10 +8,11 @@ from scipy.stats import norm    # Calculate and use norm dist
 from scipy.optimize import curve_fit
 
 
-def calculate_stats():
+def calculate_stats(filename):
     print("In calculate_stats()")
     start_time = time.time()
-    pbp_df = pd.read_csv('all_pbp.csv')
+    pbp_df = pd.read_csv(filename)
+    #pbp_df = pd.read_csv('random/pbp_2022.csv')
     print("CSV file read")
     df_size = len(pbp_df.index)
 
@@ -85,41 +86,62 @@ def calculate_stats():
             else:
                 field_goal_attempts[section].append(0)
 
+    print("Iterated through all the rows\n")
     # Create transition probabilities
-    stats_df = pd.DataFrame(columns=['Down', 'Field Section', 'Timeout Used', 'T-0', 'T-1', 'T-2', 'T-3', 'T-4', 'T-5', 'T-6', 'T-7', 'T-8', 'T-9', 'T-10', 'T-11'])
+    cols = ["Down", "Position", "Timeout Used", "Def Endzone"]
+    for yard in range(1,100):
+        cols.append(f"T-{yard}")
+    cols.append("Off Endzone")
+    cols.append("Sum")
+
+    stats_df = pd.DataFrame(columns=cols)
 
     num_calculated = 0
 
-    for down in possible_downs:
-        for section in field_sections:
-            if section == 0 or section == 11:
-                continue
+    for section in field_sections:
+        if section == 0 or section == 11:
+            continue
+        print(f"Up to {section*10}")
+        for down in possible_downs:
             for timeout in timeout_used_options:
                 mean = np.mean(yards_gained[(down, section, timeout)])
                 std = np.std(yards_gained[down, section, timeout])
+                #print(f"Normal mean: {mean}")
+                #print(f"Normal sstd: {std}")
 
                 normal_dist = norm(loc=mean, scale=std)
 
-                probs = []
-                for end_section in field_sections:
-                    # Handle conceed TD
-                    if end_section == 0:
-                        probs.append(normal_dist.cdf(5 - 10*section))
-                    # Handle score TD
-                    elif end_section == 12:
-                        probs.append(1 - normal_dist.cdf(105 - 10*section))
-                    # Hanlde no score
-                    else:
-                        probs.append(normal_dist.cdf((end_section - section)*10 + 5) - normal_dist.cdf((end_section - section)*10 - 5))
+                #print(f"Prob of -1.5 loss (Conceed TD if on 1 yrd line): {normal_dist.cdf(-1.5)}")
+                for position in range((section-1)*10, section*10):
+                    if position == 0:
+                        continue
+                    probs = []
+                    for end_yard in range(101):
+                        #print(f"Transitioning from {position} to {end_yard}")
+                        # Handle conceed TD
+                        if end_yard == 0:
+                            #print(f"In conceeding TD handling")
+                            probs.append(normal_dist.cdf(-position - 0.5))
+                        # Handle score TD
+                        elif end_yard == 100:
+                            probs.append(1 - normal_dist.cdf(100 - position + 0.5))
+                        # Handle no score
+                        else:
+                            #print(f"({position}) -> ({end_yard}) | {round(normal_dist.cdf(end_yard - position + 0.5) - normal_dist.cdf(end_yard - position - 0.5), 4)}")
+                            prob_val = normal_dist.cdf(end_yard - position + 0.5) - normal_dist.cdf(end_yard - position - 0.5)
+                            probs.append(prob_val)
+                        #print(f"Transition prob from {position} to {end_yard}: {probs[-1]}")
+                        #print(f"CDF of {end_yard-position + 0.5}: {normal_dist.cdf((end_yard-position+0.5))}")
+                        #print(f"CDF of {end_yard-position-0.5}: {normal_dist.cdf(end_yard-position-0.5)}")
+                    all_probs = sum(probs)
+                    df_entry = [down, position, timeout] + probs
+                    df_entry.append(all_probs)
+                    stats_df.loc[num_calculated] = df_entry
 
-
-                df_entry = [down, section, timeout] + probs
-                stats_df.loc[num_calculated] = df_entry
-
-                num_calculated += 1
+                    num_calculated += 1
     
-    stats_df.to_csv('stats.csv')
-
+    stats_df.to_csv('processed_data/stats_1_yard_sections.csv')
+    """
     punt_return_df = pd.DataFrame(columns=["Mean", "Average"])
     punt_return_df.loc[1] = [np.mean(punt_yards) - np.mean(punt_return_yards), np.sqrt(np.std(punt_yards)**2 + np.std(punt_return_yards)**2)]
     punt_return_df.to_csv('punt_stats.csv')
@@ -141,9 +163,13 @@ def calculate_stats():
     field_goal_df.loc[1] = df_entry_reversed
 
     field_goal_df.to_csv('field_goal_stats.csv')
+    """
 
     end_time = time.time()
-
+    print("\nDone")
     print(f'Time to run calculate_stats(): {end_time - start_time}')
 
-calculate_stats()
+PROB_TOL = 10e-16
+
+DATA_FILENAME = "all_pbp.csv"
+calculate_stats(DATA_FILENAME)
