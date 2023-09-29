@@ -7,6 +7,7 @@ include("util/constants.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
+include("actions/kneel_handling.jl")
 
 """
 Finds the optimal action given a state and returns that action and the expected value if taken. 
@@ -39,6 +40,10 @@ function state_value(
     
     # Initialise arrays to store action space and associated values
     action_space = Dict{String, Float64}()
+
+    # Kneel value
+    kneel_val = kneel_calc(state)
+    action_space["Kneel"] = kneel_val
 
     # Field goal attempt value
     field_goal_section = Int(ceil(state.ball_section/10))
@@ -121,13 +126,13 @@ punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Inputs
 plays_remaining = 2
-score_diff = 0
+score_diff = 1
 timeouts_remaining = 3
 ball_position = TOUCHBACK_SECTION
 down = 1
 first_down_dist = TOUCHBACK_SECTION + FIRST_DOWN_TO_GO
 offense_has_ball = 1
-is_first_half = 1
+is_first_half = 0
 
 initial_state = State(
     plays_remaining,
