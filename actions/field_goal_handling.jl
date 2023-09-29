@@ -10,8 +10,16 @@ Model already retrieves probability from DataFrame and stores in variable. No us
 """
 function field_goal_attempt(
     current_state:: State,
-    field_goal_prob::Float64
-)
+):: Union{Float64, Nothing}
+
+    # Get the field goal prob
+    field_goal_section = Int(ceil(current_state.ball_section/10))
+    col_name = Symbol("T-$field_goal_section")
+    field_goal_prob = field_goal_df[1, col_name]
+    # Don't calculate if there field goal cannot be kicked
+    if field_goal_prob < PROB_TOL
+        return nothing
+    end
     # Kick field goal outcome
     next_state = State(
         current_state.plays_remaining - 1,

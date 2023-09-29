@@ -10,9 +10,15 @@ Type of play only impacts probabilities. Everything else can be calculated/infer
 """
 function play_value(
     current_state:: State,
-    probabilities:: DataFrame,
     timeout_called:: Bool
-)
+):: Union{Float64, Nothing}
+
+    probabilities = filter(row ->
+        (row[:"Down"] == current_state.down) &
+        (row[:"Position"] == current_state.ball_section) &
+        (row[:"Timeout Used"] == Int(timeout_called)),
+        transition_df
+    )
     play_value = 0
 
     for section in NON_SCORING_FIELD_SECTIONS

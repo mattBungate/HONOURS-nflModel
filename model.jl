@@ -20,109 +20,68 @@ function state_value(
 )
     # Base cases
     if state.plays_remaining <= 0
-        # First half maximise points
         if Bool(state.is_first_half)
-            return state.score_diff, "End 1st half"
-        end
-        # Second half maximise winning
-        if state.score_diff > 0
-            return 100, "End Game"
-        elseif score_diff == 0
-            return 50, "End Game"
+            # 1st half: Maximise points
+            return state.score_diff
         else
-            return 0, "End Game"
+            # 2nd half: Maximise win chance
+            if state.score_diff > 0
+                return 1
+            elseif state.score_diff == 0
+                return 0.5
+            else
+                return 0
+            end
         end
     end
 
-    if haskey(state_values, state)
-        return state_values[state]
-    end
-    
-    # Initialise arrays to store action space and associated values
-    action_space = Dict{String, Float64}()
+    # Check score to see if we want to be risky or risk-averse
+    action_space_vals = Dict{String, Float64}()
 
-    # Kneel value
-    kneel_val = kneel_calc(state)
-    action_space["Kneel"] = kneel_val
-
-    # Field goal attempt value
-    field_goal_section = Int(ceil(state.ball_section/10))
-    col_name = Symbol("T-$field_goal_section")
-    field_goal_prob = field_goal_df[1, col_name]
-    if field_goal_prob > PROB_TOL
-        field_attempt_val = field_goal_attempt(
-            state,
-            field_goal_prob
-        )
-        action_space["Field Goal"] = field_attempt_val
-    end
-    
-    # Punt Decision
-    punt_val = punt_value(state)
-    action_space["Punt"] = punt_val
-
-    # No timeout calculation
-    no_timeout_stats = filter(row ->
-        (row[:"Down"] == state.down) &
-        (row[:"Position"] == state.ball_section) &
-        (row[:"Timeout Used"] == 0),
-        transition_df
-    )
-    if nrow(no_timeout_stats) > 0
-        no_timeout_value = play_value(
-            state,
-            no_timeout_stats,
-            false
-        )
-        action_space["Play No Timeout"] = no_timeout_value
+    if state.score_diff > 0
+        actions_ordered = actions
     else
-        down = state.down
-        ball_section = state.ball_section
-        println("No data for NO timeout & ($down, $ball_section)")
+        actions_ordered = reverse(actions)
     end
 
-    # Timeout calculations
-
-    # Only allow timeout for offense if timeouts available
-    if state.timeouts_remaining > 0 && Bool(state.offense_has_ball)     
-        # Retrieve the row for prob of down, position & timeout
-        timeout_stats = filter(row ->
-            (row[:"Down"] == state.down) &
-            (row[:"Position"] == state.ball_section) &
-            (row[:"Timeout Used"] == 1),
-            transition_df
-        )
-        if nrow(timeout_stats) > 0
-            timeout_value = play_value(
-                state,
-                timeout_stats,
-                true
-            )
-            action_space["Play Timeout"] = timeout_value
-        else 
-            # This skips over 4th down, section 10 timeout called
-            # There are no instances of this is the dataset
-            down = state.down
-            ball_section = state.ball_section
-            println("No data for timeout & ($down, $ball_section)")
+    for action in actions_ordered
+        if action == "Play Timeout"
+            action_value = action_funcs[action](state, true)
+        elseif action == "Play No Timeout"
+            action_value = action_funcs[action](state, false)
+        else
+            action_value = action_funcs[action](state)
+        end
+        if action_value !== nothing
+            action_space_vals[action] = action_value
         end
     end
-    
-    # Get the optimal action and its value
-    optimal_decision = findmax(action_space)
 
-    # Store the optimal decision
+    # Get optimal
+    optimal_decision = findmax(action_space_vals)
+
+    # Store solution
     state_values[state] = optimal_decision
 
     return optimal_decision
 end
-
 
 # Data
 transition_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame 
 field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
+
+# Actions ordered in terms of risk (least to most)
+actions = ["Kneel", "Punt", "Field Goal", "Play Timeout", "Play No Timeout"]
+
+action_funcs = Dict{String, Function}(
+    "Kneel" => kneel_calc,
+    "Punt" => punt_value,
+    "Field Goal" => field_goal_attempt,
+    "Play Timeout" => play_value,
+    "Play No Timeout" => play_value
+)
 
 # Inputs
 plays_remaining = 2
