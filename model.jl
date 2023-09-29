@@ -53,10 +53,11 @@ function state_value(
     end
     
     # Punt Decision
-    punt_val = punt_value(state)
-    action_space["Punt"] = punt_val
+    #punt_val = punt_value(state)
+    #action_space["Punt"] = punt_val
 
     # No timeout calculation
+    #println("No Timeout calculation")
     no_timeout_stats = filter(row ->
         (row[:"Down"] == state.down) &
         (row[:"Position"] == state.ball_section) &
@@ -77,7 +78,7 @@ function state_value(
     end
 
     # Timeout calculations
-
+    #println("\nTimeout Calculation")
     # Only allow timeout for offense if timeouts available
     if state.timeouts_remaining > 0 && Bool(state.offense_has_ball)     
         # Retrieve the row for prob of down, position & timeout
@@ -142,11 +143,14 @@ initial_state = State(
 
 state_values = Dict{State, Tuple{Float64, String}}()
 
+#global function_calls = 0
+
 println("Plays remaining: $plays_remaining")
 @time play_value_calc = state_value(
     initial_state
 )
 println(length(state_values))
+#println("Function called $function_calls")
 
 play_value_rounded = round(play_value_calc[1], digits=2)
 play_type = play_value_calc[2]
