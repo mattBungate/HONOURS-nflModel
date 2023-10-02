@@ -2,9 +2,10 @@
 Calculates the value of kneeling
 """
 function kneel_calc(
-    current_state:: State
+    current_state:: State,
+    optimal_value:: Union{Nothing, Float64}
 )
-    if down == 4
+    if current_state.down == 4
         next_state = State(
             current_state.plays_remaining - 1,
             current_state.score_diff,

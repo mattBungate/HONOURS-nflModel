@@ -20,3 +20,4 @@ const FIRST_DOWN_TO_GO = 10                                 # Dist to first down
 const FIRST_DOWN = 1                                        # For clarity
 
 const PROB_TOL = 10e-16                                     # If prob is under its considered insignificant
+const GROUP_PROB_TOL = 10e-2                                # Probability threshold for groups

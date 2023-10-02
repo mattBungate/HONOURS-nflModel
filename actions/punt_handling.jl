@@ -8,9 +8,11 @@ Very simple implementation. Doesn't account for any state factors.
 Finds transition probs by creating a normal distrubtion fitted to all punts. 
 """
 function punt_value(
-    current_state:: State
+    current_state:: State,
+    optimal_value:: Union{Nothing, Float64}
 )
     punt_val = 0
+    prob_remaining = 1
 
     section_probs = []
     for end_section in FIELD_SECTIONS
@@ -27,9 +29,19 @@ function punt_value(
     end
 
     for end_section in FIELD_SECTIONS
+        if (!Bool(current_state.is_first_half) && 
+            optimal_value !== nothing && 
+            punt_val + prob_remaining < optimal_value)
+
+            return nothing
+        end
+
         if end_section == TOUCHDOWN_SECTION
             continue
         end
+
+        prob_remaining -= section_probs[end_section + 1]
+        
         if section_probs[end_section + 1] > PROB_TOL
             if end_section == TOUCHDOWN_CONCEEDED_SECTION
                 # If other team scores off punt return
