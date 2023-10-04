@@ -9,22 +9,22 @@ The type of play will be handled before this function is called.
 Type of play only impacts probabilities. Everything else can be calculated/infered
 """
 function play_value(
-    current_state:: State,
-    timeout_called:: Bool,
-    optimal_value:: Union{Nothing, Float64}
-):: Union{Float64, Nothing}
+    current_state::State,
+    timeout_called::Bool,
+    optimal_value::Union{Nothing,Float64}
+)::Union{Float64,Nothing}
 
     probabilities = filter(row ->
-        (row[:"Down"] == current_state.down) &
-        (row[:"Position"] == current_state.ball_section) &
-        (row[:"Timeout Used"] == Int(timeout_called)),
+            (row[:"Down"] == current_state.down) &
+            (row[:"Position"] == current_state.ball_section) &
+            (row[:"Timeout Used"] == Int(timeout_called)),
         transition_df
     )
     play_value = 0
     prob_remaining = 1
 
     # Pick six scenario
-    pick_six_prob = probabilities[1,:"Def Endzone"]
+    pick_six_prob = probabilities[1, :"Def Endzone"]
     if pick_six_prob > PROB_TOL
         next_state = State(
             current_state.plays_remaining - 1,
@@ -45,20 +45,20 @@ function play_value(
     # Grouping sections behind line of scrimage
     group_far_section = TOUCHDOWN_CONCEEDED_SECTION + 1
     group_prob = 0
-    for section in TOUCHDOWN_CONCEEDED_SECTION+1:current_state.ball_section - 1
+    for section in TOUCHDOWN_CONCEEDED_SECTION+1:current_state.ball_section-1
         col_name = Symbol("T-$section")
         section_prob = probabilities[1, col_name]
         group_prob += section_prob
         if group_prob > GROUP_PROB_TOL
-            new_ball_section = Int(ceil((group_far_section + section)/2))
+            new_ball_section = Int(ceil((group_far_section + section) / 2))
             # Calculate group
             next_state = State(
                 current_state.plays_remaining - 1,
                 current_state.score_diff,
                 timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-                current_state.down == 4 ? 100 - new_ball_section : new_ball_section,
+                current_state.down == 4 ? TOUCHDOWN_SECTION - new_ball_section : new_ball_section,
                 current_state.down == 4 ? FIRST_DOWN : current_state.down + 1,
-                current_state.down == 4 ? 100 - new_ball_section - FIRST_DOWN_TO_GO : new_ball_section + FIRST_DOWN_TO_GO,
+                current_state.down == 4 ? TOUCHDOWN_SECTION - new_ball_section - FIRST_DOWN_TO_GO : new_ball_section + FIRST_DOWN_TO_GO, # This aint rihgt
                 current_state.offense_has_ball,
                 current_state.is_first_half
             )
@@ -80,7 +80,7 @@ function play_value(
 
     # States between ball and first down
     for section in current_state.ball_section:current_state.first_down_section
-        if section > 99 
+        if section >= TOUCHDOWN_SECTION
             continue
         end
         col_name = Symbol("T-$section")
@@ -123,9 +123,9 @@ function play_value(
                     current_state.plays_remaining - 1,
                     current_state.score_diff,
                     timeout_called ? current_state.timeouts_remaining - 1 : current_state.timeouts_remaining,
-                    100 - section,
+                    TOUCHDOWN_SECTION - section,
                     FIRST_DOWN,
-                    100 - section + FIRST_DOWN_TO_GO,
+                    TOUCHDOWN_SECTION - section + FIRST_DOWN_TO_GO,
                     1 - current_state.offense_has_ball,
                     current_state.is_first_half
                 )
@@ -135,8 +135,8 @@ function play_value(
             next_state
         )[1]
         prob_remaining -= transition_prob
-        if (!Bool(current_state.is_first_half) && 
-            optimal_value !== nothing && 
+        if (!Bool(current_state.is_first_half) &&
+            optimal_value !== nothing &&
             play_value + prob_remaining < optimal_value)
 
             return nothing
@@ -148,12 +148,12 @@ function play_value(
         group_far_section = current_state.first_down_section + 1
         group_prob = 0
 
-        for section in current_state.first_down_section + 1:TOUCHDOWN_SECTION-1
+        for section in current_state.first_down_section+1:TOUCHDOWN_SECTION-1
             col_name = Symbol("T-$section")
             section_prob = probabilities[1, col_name]
             group_prob += section_prob
             if group_prob > GROUP_PROB_TOL
-                new_ball_section = Int(ceil((group_far_section + section)/2))
+                new_ball_section = Int(ceil((group_far_section + section) / 2))
                 # Calculate group
                 next_state = State(
                     current_state.plays_remaining - 1,
@@ -175,7 +175,7 @@ function play_value(
         end
         # Do the final group that might not have been done 
         if group_prob > 0
-            new_ball_section = Int(ceil((group_far_section + current_state.first_down_section + 1)/2))
+            new_ball_section = Int(ceil((group_far_section + current_state.first_down_section + 1) / 2))
             next_state = State(
                 current_state.plays_remaining - 1,
                 current_state.score_diff,
@@ -192,8 +192,8 @@ function play_value(
             #grouped_sections += 1
         end
         prob_remaining -= group_prob
-        if (!Bool(current_state.is_first_half) && 
-            optimal_value !== nothing && 
+        if (!Bool(current_state.is_first_half) &&
+            optimal_value !== nothing &&
             play_value + prob_remaining < optimal_value)
 
             return nothing

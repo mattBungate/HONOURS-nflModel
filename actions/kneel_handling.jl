@@ -2,17 +2,17 @@
 Calculates the value of kneeling
 """
 function kneel_calc(
-    current_state:: State,
-    optimal_value:: Union{Nothing, Float64}
+    current_state::State,
+    optimal_value::Union{Nothing,Float64}
 )
     if current_state.down == 4
         next_state = State(
             current_state.plays_remaining - 1,
             current_state.score_diff,
             current_state.timeouts_remaining,
-            100 - current_state.ball_section,
+            TOUCHDOWN_SECTION - current_state.ball_section,
             FIRST_DOWN,
-            100 - current_state.ball_section + 10,
+            TOUCHDOWN_SECTION - current_state.ball_section + FIRST_DOWN_TO_GO,
             1 - current_state.offense_has_ball,
             current_state.is_first_half
         )
