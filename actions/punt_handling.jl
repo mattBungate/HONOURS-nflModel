@@ -14,19 +14,10 @@ function punt_value(
     punt_val = 0
     prob_remaining = 1
 
-    section_probs = []
-    for end_section in FIELD_SECTIONS
-        if end_section == TOUCHDOWN_CONCEEDED_SECTION
-            push!(section_probs, cdf(punt_dist, -current_state.ball_section * SECTION_WIDTH + SECTION_WIDTH / 2))
-        elseif end_section == TOUCHDOWN_SECTION
-            section_probs[(TOUCHDOWN_SECTION-TOUCHBACK_SECTION)+1] += 1 - cdf(punt_dist, SECTION_WIDTH * (TOUCHDOWN_SECTION - current_state.ball_section) - SECTION_WIDTH / 2) # If punt goes into end zone its an auto touchback
-        else
-            push!(section_probs,
-                cdf(punt_dist, SECTION_WIDTH * (end_section - current_state.ball_section) + SECTION_WIDTH / 2) \
-                -cdf(punt_dist, SECTION_WIDTH * (end_section - current_state.ball_section) - SECTION_WIDTH / 2)
-            )
-        end
-    end
+    probabilities = filter(row ->
+            (row[:"Punt Section"] == current_state.down),
+        punt_df
+    )
 
     for end_section in FIELD_SECTIONS
         if (!Bool(current_state.is_first_half) &&
@@ -40,9 +31,12 @@ function punt_value(
             continue
         end
 
-        prob_remaining -= section_probs[end_section+1]
+        col_name = Symbol("T-$end_section")
+        end_section_prob = probabilities[1, col_name]
 
-        if section_probs[end_section+1] > PROB_TOL
+        prob_remaining -= end_section_prob
+
+        if end_section_prob > PROB_TOL
             if end_section == TOUCHDOWN_CONCEEDED_SECTION
                 # If other team scores off punt return
                 next_state = State(
@@ -55,7 +49,7 @@ function punt_value(
                     current_state.offense_has_ball,
                     current_state.is_first_half
                 )
-                punt_val += section_probs[1] * state_value(
+                punt_val += end_section_prob * state_value(
                     next_state
                 )[1]
             else
@@ -69,7 +63,7 @@ function punt_value(
                     1 - current_state.offense_has_ball,
                     current_state.is_first_half
                 )
-                punt_val += section_probs[end_section+1] * state_value(
+                punt_val += end_section_prob * state_value(
                     next_state
                 )[1]
             end

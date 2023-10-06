@@ -76,8 +76,8 @@ end
 # Data
 const transition_df = CSV.File("processed_data/stats_$(SECTION_WIDTH)_yard_sections.csv") |> DataFrame
 const field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
-const punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
-const punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
+const punt_df = CSV.File("processed_data/punt_probs.csv") |> DataFrame
+#const punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 
 # Actions ordered in terms of risk (least to most)
 const actions = ["Kneel", "Punt", "Field Goal", "Play Timeout", "Play No Timeout"]
