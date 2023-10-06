@@ -1,5 +1,5 @@
 using DataFrames
-using CSV 
+using CSV
 using Distributions
 
 include("util/state.jl")
@@ -7,6 +7,7 @@ include("util/constants.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
+include("actions/kneel_handling.jl")
 
 """
 Finds the optimal action given a state and returns that action and the expected value if taken. 
@@ -14,120 +15,73 @@ Finds the optimal action given a state and returns that action and the expected 
 Parameters:
 state: State space currently occupied.
 """
-function state_value(
-    state:: State
+function state_value_calc(
+    state::State
 )
+
     # Base cases
     if state.plays_remaining <= 0
-        # First half maximise points
-        if Bool(state.is_first_half)
+        # 1st half: maximise points
+        if state.is_first_half
             return state.score_diff, "End 1st half"
         end
-        # Second half maximise winning
+        # 2nd half: maximise winning
         if state.score_diff > 0
-            return 100, "End Game"
+            return 1, "End Game"
         elseif score_diff == 0
-            return 50, "End Game"
-        else
             return 0, "End Game"
+        else
+            return -1, "End Game"
         end
     end
 
+    # Check if state is cached
     if haskey(state_values, state)
         return state_values[state]
     end
-    
+
     # Initialise arrays to store action space and associated values
-    action_space = Dict{String, Float64}()
+    action_values = Dict{String,Float64}()
 
-    # Field goal attempt value
-    ball_section = state.ball_section
-    col_name = Symbol("T-$ball_section")
-    field_goal_prob = field_goal_df[1, col_name]
-    if field_goal_prob > PROB_TOL
-        field_attempt_val = field_goal_attempt(
-            state,
-            field_goal_prob
-        )
-        action_space["Field Goal"] = field_attempt_val
-    end
-    
-    # Punt Decision
-    punt_val = punt_value(state)
-    action_space["Punt"] = punt_val
-
-    # No timeout calculation
-    no_timeout_stats = filter(row ->
-        (row[:"Down"] == state.down) &
-        (row[:"Field Section"] == state.ball_section) &
-        (row[:"Timeout Used"] == 0),
-        transition_df
-    )
-    if nrow(no_timeout_stats) > 0
-        no_timeout_value = play_value(
-            state,
-            no_timeout_stats,
-            false
-        )
-        action_space["Play No Timeout"] = no_timeout_value
-    else
-        down = state.down
-        ball_section = state.ball_section
-        println("No data for NO timeout & ($down, $ball_section)")
-    end
-
-    # Timeout calculations
-
-    # Only allow timeout for offense if timeouts available
-    if state.timeouts_remaining > 0 && Bool(state.offense_has_ball)     
-        # Retrieve the row for prob of down, position & timeout
-        timeout_stats = filter(row ->
-            (row[:"Down"] == state.down) &
-            (row[:"Field Section"] == state.ball_section) &
-            (row[:"Timeout Used"] == 1),
-            transition_df
-        )
-        if nrow(timeout_stats) > 0
-            timeout_value = play_value(
-                state,
-                timeout_stats,
-                true
-            )
-            action_space["Play Timeout"] = timeout_value
-        else 
-            # This skips over 4th down, section 10 timeout called
-            # There are no instances of this is the dataset
-            down = state.down
-            ball_section = state.ball_section
-            println("No data for timeout & ($down, $ball_section)")
+    # Iterate through each action in action_space
+    for action in action_space
+        # Calculate action value
+        if action == "Timeout Play"
+            action_value = action_functions[action](state, true) # Clean this up
+        elseif action == "No Timeout Play"
+            action_value = action_functions[action](state, false) # Clean this up
+        else
+            action_value = action_functions[action](state)
+        end
+        # Store action value if value returned        
+        if action_value !== nothing
+            action_values[action] = action_value
         end
     end
-    
-    # Get the optimal action and its value
-    optimal_decision = findmax(action_space)
 
-    # Store the optimal decision
-    state_values[state] = optimal_decision
+    # Find optimal action
+    optimal_action = findmax(action_values)
 
-    return optimal_decision
+    state_values[state] = optimal_action
+
+    return optimal_action
 end
 
-
 # Data
-transition_df = CSV.File("processed_data/stats.csv") |> DataFrame 
+play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame
 field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
-punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
-punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
+punt_df = CSV.File("processed_data/punt_probs.csv") |> DataFrame
 
 # Inputs
-plays_remaining = 6
+plays_remaining = 3
 score_diff = 0
-timeouts_remaining = 3
+timeouts_remaining = (1, 0)
 ball_position = TOUCHBACK_SECTION
 down = 1
-first_down_dist = TOUCHBACK_SECTION + 1
-offense_has_ball = 1
-is_first_half = 1
+first_down_dist = TOUCHBACK_SECTION + FIRST_DOWN_TO_GO
+timeout_called = false
+clock_ticking = false
+is_first_half = true
 
 initial_state = State(
     plays_remaining,
@@ -136,24 +90,35 @@ initial_state = State(
     ball_position,
     down,
     first_down_dist,
-    offense_has_ball,
+    timeout_called,
+    clock_ticking,
     is_first_half
 )
 
-state_values = Dict{State, Tuple{Float64, String}}()
+action_space = ["Kneel", "Field Goal", "Punt", "No Timeout Play", "Timeout Play"]
+
+action_functions = Dict{String,Function}(
+    "Kneel" => kneel_value_calc,
+    "Field Goal" => field_goal_value_calc,
+    "Punt" => punt_value_calc,
+    "No Timeout Play" => play_value_calc,
+    "Timeout Play" => play_value_calc
+)
+
+state_values = Dict{State,Tuple{Float64,String}}()
 
 println("Plays remaining: $plays_remaining")
-@time play_value_calc = state_value(
+@time state_value = state_value_calc(
     initial_state
 )
 println(length(state_values))
 
-play_value_rounded = round(play_value_calc[1], digits=2)
-play_type = play_value_calc[2]
+state_value_rounded = round(state_value[1], digits=2)
+play_type = state_value[2]
 
 if Bool(is_first_half)
-    println("\n\nThe expected score differential for this position if played optimally is $play_value_rounded")
+    println("\n\nThe expected score differential for this position if played optimally is $state_value_rounded")
 else
-    println("\n\nThere is a $play_value_rounded % chance of winning in this position")
+    println("\n\nThere is a $state_value_rounded % chance of winning in this position")
 end
 println("Optimal play: $play_type\n\n")

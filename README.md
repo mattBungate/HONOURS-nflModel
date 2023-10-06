@@ -20,33 +20,56 @@ pbp_data.to_csv("pbp_data.csv")
 ## Data processing
 The data is processed using python. Values are stored in csv files. 
 
-play_stats.csv: Holds the probabilities of transitioning between sections given the down, current section and whether a timeout has been called. 
-punt_stats.csv: Holds the mean and standard deviation of punting (for all punts, no state information considered). This will be used to make a normal distribution in the model the create the probabilities. This will be improved in future. 
-field_goal_stats.csv: Holds the probabilities of successfully kicking a field goal considering the field position. 
-
-## Model
-The model is created in julia. More details on formulation can be found in overleaf file but the model will have the following when fully implemented: 
-
-**State space**: Score, plays remaining, timeouts remaining, ball position, down, first down distance, whether the team is offense or defence, whether it is first or second half.
-**Action space**: If on offense consider the following plays: Field goal attempt, punt, run a play, call a timeout and run the play
+**play_stats.csv**: Holds the probabilities of transitioning between sections given the down, current section and whether a timeout has been called. 
+**punt_probs.csv**: Holds the probabilities of transitioning between sections given the position on the field. This gives probability of the final position of the ball, after the punt AND return. 
+**field_goal_stats.csv**: Holds the probabilities of successfully kicking a field goal considering the field position. 
 
 ---
 
-### Version Major Changes | V.1.5.1 -> V.2.0.0
-The focus of this version is implementing a proper sense of time to the model. The main difference will be changing State.plays_remaining to State.seconds_remaining. This also allows a game clock to be implemented. With these two changes the model can begin optimising time management. With this in mind, the action space will also be expanded to include time sensitive plays
+## Version 1 - Initial Model
+Version 1 is about creating the simplest model to have a base to build upon for future models.
 
-#### Implementation:
-##### Plays to Seconds
-- [ ] Update data_processing.py to include probabilities to include length of play
-- [ ] Change State.plays_remaining to State.seconds_remaining
-- [ ] Update all action functions to account for State change
-##### Game Clock
-- [ ] Add binary indicator to State to represent whether the clock is ticking or not
-- [ ] Add data about the typical time between plays
-- [ ] Change action functions to account for new binary indicator & clock
-##### Expanding Action Space
-- [ ] Spike
-- [ ] Kneel
-- [ ] Kneel out game (new terminal case)
-- [ ] Use minimal time for play
-- [ ] Run down clock with plays
+### State Space
+The factors that are taken into consideration are:
+- Plays remaining
+- Score differential
+- Timeouts remaining
+- Ball section
+- Down
+- First down section
+- Timeout called before this decision/play
+
+### Action Space
+The actions that can be taken, along with the constraints on when they can be taken are as follows:
+- Kneel (anytime)
+- Field Goal (when the ball is starting in the attacking half)
+- Punt (anytime)
+- Play and no timeout at end of play (anytime)
+- Play and timeout at end of play (when there are timeouts remaining)
+
+### Outcome Space
+Follows the rules of an NFL game. Every play will result in transitioning to a state where plays remaining has decreasing by one. This is used to determine if the state is in a terminal case. 
+
+Additionally, we have that the model is in the perspective of the team with the ball. This means that when a change in possession of the ball occurs some actions must be taken:
+- Score differential is flipped. 
+- The sections (ball & first down) must be flipped to be perspective of new team
+- The final play that results in the change in posesion should subtract instead of add the value of the new value
+- Timeouts remaining needs to be in the perspective of new team in possession
+
+## Version 2 - Time implementation
+The main purpose of version 2 is to implement time in a more effective manner. The plays remaining framework from version 1 is very crude and does not allow for insightful or interesting results from optimisation. With a proper implementation of time the model will become signficantly more intricate and complex and will provide more insightful results from optimisation.
+
+### State Space
+The factors that are taken into consideration for a state are:
+- Seconds remaining
+- Score differential
+- Timeouts remaining
+- Ball section
+- Down
+- Firsst down section
+- Timeout called before this decision/play
+
+### Outcome Space
+Follows the rules of an NFL game. Every play will result in transitioning to a state where the seconds remaining have decreased. The seconds remaining is used to determine if the state is in a terminal case. 
+
+Instead of taking the expected value of each state resulted from every possible yards gained value, we need to consider the expected value of each state resulting from the yards gained AND time duration of play value. 
