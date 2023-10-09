@@ -13,7 +13,7 @@ Fields:
 """
 
 struct State
-    plays_remaining::Int
+    seconds_remaining::Int
     score_diff::Int
     timeouts_remaining::Tuple{Int,Int}
     ball_section::Int

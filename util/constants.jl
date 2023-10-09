@@ -20,7 +20,19 @@ const FIRST_DOWN_TO_GO = 10                                 # Dist to first down
 const FIRST_DOWN = 1                                        # For clarity
 
 const PROB_TOL = 10e-8                                      # If prob is under its considered insignificant
+const TIME_PROB_TOL = 10e-3
 
 const KNEEL_DURATION = 40
 
 const FIELD_GOAL_CUTOFF = 50
+
+const MIN_PLAY_LENGTH = 1
+const MAX_PLAY_LENGTH = 45
+
+const MIN_FIELD_GOAL_DURATION = 1
+const MAX_FIELD_GOAL_DURATION = 14
+
+const MIN_PUNT_DURATION = 3
+const MAX_PUNT_DURATION = 22
+
+const DUMMY_PLAY_DURATION = 25

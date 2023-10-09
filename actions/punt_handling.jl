@@ -21,48 +21,64 @@ function punt_value_calc(
         # Skip scoring of punt
         if end_section == TOUCHDOWN_SECTION
             continue
+            time_probs = filter(row ->
+                    (row[:"Yards Gained"] == end_section - current_state.ball_section),
+                time_punt_df
+            )
             # Handle return TD
-        elseif end_section == TOUCHDOWN_CONCEEDED_SECTION
-            end_section_prob = probabilities[1, :"Def Endzone"]
-            if end_section_prob > PROB_TOL
-                next_state = State(
-                    current_state.plays_remaining - 1, # Change to seconds. Need data
-                    current_state.score_diff - TOUCHDOWN_SCORE,
-                    current_state.timeouts_remaining, # Figure out timeout handling
-                    TOUCHBACK_SECTION,
-                    FIRST_DOWN,
-                    TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
-                    false,
-                    false, # Clock ticking handling. Need data
-                    current_state.is_first_half
-                )
-                punt_val += end_section_prob * state_value_calc(
-                    next_state
-                )[1]
-            end
-            # Handle all other return
-        else
-            # Get the probability
-            col_name = Symbol("T-$(end_section)")
-            end_section_prob = probabilities[1, col_name]
+            if end_section == TOUCHDOWN_CONCEEDED_SECTION
+                end_section_prob = probabilities[1, Symbol("Def Endzone")]
+                if end_section_prob > PROB_TOL
+                    for seconds in MIN_PUNT_DURATION:MAX_PUNT_DURATION
+                        time_prob = time_probs[1, Symbol("$(seconds) secs")]
+                        if time_prob > TIME_PROB_TOL
+                            next_state = State(
+                                current_state.seconds_remaining - seconds, # Change to seconds. Need data
+                                current_state.score_diff - TOUCHDOWN_SCORE,
+                                current_state.timeouts_remaining, # Figure out timeout handling
+                                TOUCHBACK_SECTION,
+                                FIRST_DOWN,
+                                TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
+                                false,
+                                false, # Clock ticking handling. Need data
+                                current_state.is_first_half
+                            )
+                            punt_val += end_section_prob * time_prob * state_value_calc(
+                                            next_state
+                                        )[1]
+                        end
+                    end
+                end
+                # Handle all other return
+            else
+                # Get the probability
+                col_name = Symbol("T-$(end_section)")
+                end_section_prob = probabilities[1, col_name]
 
-            if end_section_prob > PROB_TOL
-                next_state = State(
-                    current_state.plays_remaining - 1, # Change to seconds. Need data
-                    -current_state.score_diff,
-                    current_state.timeouts_remaining, # Timeout handling
-                    end_section,
-                    FIRST_DOWN,
-                    end_section + FIRST_DOWN_TO_GO,
-                    false,
-                    false, # Clock ticking handling. Need data
-                    current_state.is_first_half
-                )
-                punt_val += end_section_prob * -state_value_calc(
-                    next_state
-                )[1]
+                if end_section_prob > PROB_TOL
+                    for seconds in MIN_PUNT_DURATION:MAX_PUNT_DURATION
+                        time_prob = time_probs[1, Symbol("$(seconds) secs")]
+                        if time_prob > TIME_PROB_TOL
+                            next_state = State(
+                                current_state.seconds_remaining - seconds, # Change to seconds. Need data
+                                -current_state.score_diff,
+                                current_state.timeouts_remaining, # Timeout handling
+                                end_section,
+                                FIRST_DOWN,
+                                end_section + FIRST_DOWN_TO_GO,
+                                false,
+                                false, # Clock ticking handling. Need data
+                                current_state.is_first_half
+                            )
+                            punt_val += end_section_prob * time_prob * -state_value_calc(
+                                            next_state
+                                        )[1]
+                        end
+                    end
+                end
             end
         end
     end
+
     return punt_val
 end

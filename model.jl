@@ -18,9 +18,8 @@ state: State space currently occupied.
 function state_value_calc(
     state::State
 )
-
     # Base cases
-    if state.plays_remaining <= 0
+    if state.seconds_remaining <= 0
         # 1st half: maximise points
         if state.is_first_half
             return state.score_diff, "End 1st half"
@@ -62,7 +61,21 @@ function state_value_calc(
     # Find optimal action
     optimal_action = findmax(action_values)
 
-    state_values[state] = optimal_action
+    # Store all states (opp timeouts have no impact)
+    for i in 0:3
+        same_state_value = State(
+            state.seconds_remaining,
+            state.score_diff,
+            (state.timeouts_remaining[1], i),
+            state.ball_section,
+            state.down,
+            state.first_down_section,
+            state.timeout_called,
+            state.clock_ticking,
+            state.is_first_half
+        )
+        state_values[same_state_value] = optimal_action
+    end
 
     return optimal_action
 end
@@ -71,29 +84,20 @@ end
 play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame
 field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
 punt_df = CSV.File("processed_data/punt_probs.csv") |> DataFrame
+time_df = CSV.File("processed_data/time_stats_2022.csv") |> DataFrame
+time_punt_df = CSV.File("processed_data/punt_time_stats_2022.csv") |> DataFrame
+time_field_goal_df = CSV.File("processed_data/field_goal_time_2022.csv") |> DataFrame
 
 # Inputs
-plays_remaining = 3
+seconds_remaining = 2
 score_diff = 0
-timeouts_remaining = (1, 0)
+timeouts_remaining = (0, 0)
 ball_position = TOUCHBACK_SECTION
 down = 1
 first_down_dist = TOUCHBACK_SECTION + FIRST_DOWN_TO_GO
 timeout_called = false
 clock_ticking = false
 is_first_half = true
-
-initial_state = State(
-    plays_remaining,
-    score_diff,
-    timeouts_remaining,
-    ball_position,
-    down,
-    first_down_dist,
-    timeout_called,
-    clock_ticking,
-    is_first_half
-)
 
 action_space = ["Kneel", "Field Goal", "Punt", "No Timeout Play", "Timeout Play"]
 
@@ -107,7 +111,20 @@ action_functions = Dict{String,Function}(
 
 state_values = Dict{State,Tuple{Float64,String}}()
 
-println("Plays remaining: $plays_remaining")
+initial_state = State(
+    seconds_remaining,
+    score_diff,
+    timeouts_remaining,
+    ball_position,
+    down,
+    first_down_dist,
+    timeout_called,
+    clock_ticking,
+    is_first_half
+)
+
+
+println("Seconds remaining: $seconds_remaining")
 @time state_value = state_value_calc(
     initial_state
 )
@@ -122,3 +139,7 @@ else
     println("\n\nThere is a $state_value_rounded % chance of winning in this position")
 end
 println("Optimal play: $play_type\n\n")
+
+
+println("Test haskey function")
+@time dummy_var = haskey(state_values, initial_state)
