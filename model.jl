@@ -8,6 +8,7 @@ include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
 include("actions/kneel_handling.jl")
+include("actions/spike_handling.jl")
 
 """
 Finds the optimal action given a state and returns that action and the expected value if taken. 
@@ -89,7 +90,7 @@ time_punt_df = CSV.File("processed_data/punt_time_stats_2022.csv") |> DataFrame
 time_field_goal_df = CSV.File("processed_data/field_goal_time_2022.csv") |> DataFrame
 
 # Inputs
-seconds_remaining = 2
+seconds_remaining = 1
 score_diff = 0
 timeouts_remaining = (0, 0)
 ball_position = TOUCHBACK_SECTION
@@ -99,14 +100,15 @@ timeout_called = false
 clock_ticking = false
 is_first_half = true
 
-action_space = ["Kneel", "Field Goal", "Punt", "No Timeout Play", "Timeout Play"]
+action_space = ["Kneel", "Field Goal", "Punt", "No Timeout Play", "Timeout Play", "Spike"]
 
 action_functions = Dict{String,Function}(
     "Kneel" => kneel_value_calc,
     "Field Goal" => field_goal_value_calc,
     "Punt" => punt_value_calc,
     "No Timeout Play" => play_value_calc,
-    "Timeout Play" => play_value_calc
+    "Timeout Play" => play_value_calc,
+    "Spike" => spike_value_calc
 )
 
 state_values = Dict{State,Tuple{Float64,String}}()
