@@ -4,6 +4,7 @@ using Distributions
 
 include("util/state.jl")
 include("util/constants.jl")
+include("util/util.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
@@ -19,6 +20,8 @@ state: State space currently occupied.
 function state_value_calc(
     state::State
 )
+    global state_value_calc_calls
+    state_value_calc_calls += 1
     # Base cases
     if state.seconds_remaining <= 0
         # 1st half: maximise points
@@ -81,6 +84,8 @@ function state_value_calc(
     return optimal_action
 end
 
+global state_value_calc_calls = 0
+
 # Data
 play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame
 field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
@@ -90,7 +95,7 @@ time_punt_df = CSV.File("processed_data/punt_time_stats_2022.csv") |> DataFrame
 time_field_goal_df = CSV.File("processed_data/field_goal_time_2022.csv") |> DataFrame
 
 # Inputs
-seconds_remaining = 1
+seconds_remaining = 2
 score_diff = 0
 timeouts_remaining = (0, 0)
 ball_position = TOUCHBACK_SECTION
@@ -131,6 +136,7 @@ println("Seconds remaining: $seconds_remaining")
     initial_state
 )
 println(length(state_values))
+println("Number of state value function calls: $(state_value_calc_calls)")
 
 state_value_rounded = round(state_value[1], digits=2)
 play_type = state_value[2]

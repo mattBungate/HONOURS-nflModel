@@ -20,7 +20,7 @@ function kneel_value_calc(
         return -state_value_calc(next_state)[1]
     else
         next_state = State(
-            current_state.seconds_remaining - KNEEL_DURATION,
+            max(current_state.seconds_remaining - KNEEL_DURATION, 0),
             current_state.score_diff,
             current_state.timeouts_remaining,
             current_state.ball_section,

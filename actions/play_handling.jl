@@ -47,7 +47,7 @@ function play_value_calc(
                     time_prob = 0
                 end
             end
-            if time_prob > TIME_PROB_TOL
+            if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
                 next_state = State(
                     current_state.seconds_remaining - seconds, # Change this to seconds. Need data
                     -(current_state.score_diff - TOUCHDOWN_SCORE),
@@ -59,9 +59,8 @@ function play_value_calc(
                     false, # Clock stops after TD
                     current_state.is_first_half
                 )
-                play_value += pick_six_prob * time_prob - state_value_calc(
-                    next_state
-                )[1]
+                play_second_value = -state_value_calc(next_state)[1]
+                play_value += pick_six_prob * time_prob * play_second_value
             end
         end
     end
@@ -89,8 +88,7 @@ function play_value_calc(
                             time_prob = 0
                         end
                     end
-                    if time_prob > TIME_PROB_TOL
-
+                    if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
                         # Non 4th down handling
                         if current_state.down < 4
                             if section >= current_state.first_down_section
@@ -115,9 +113,8 @@ function play_value_calc(
                                 Bool(clock_stopped) || timeout_called_planned,
                                 current_state.is_first_half
                             )
-                            play_value += transition_prob * time_prob * state_value_calc(
-                                              next_state
-                                          )[1]
+                            play_second_value = state_value_calc(next_state)[1]
+                            play_value += transition_prob * time_prob * play_second_value
                         else
                             if timeout_called_planned
                                 timeouts_remaining_if_called = (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2])
@@ -182,7 +179,7 @@ function play_value_calc(
                     time_prob = 0
                 end
             end
-            if time_prob > TIME_PROB_TOL
+            if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
                 next_state = State(
                     current_state.seconds_remaining - seconds, # Change this to seconds. Need data
                     -(current_state.score_diff + TOUCHDOWN_SECTION),
@@ -194,9 +191,8 @@ function play_value_calc(
                     false, # We assume fair catch for kickoff.
                     current_state.is_first_half
                 )
-                play_value += td_prob * time_prob * -state_value_calc(
-                                  next_state
-                              )[1]
+                play_second_value = -state_value_calc(next_state)[1]
+                play_value += td_prob * time_prob * play_second_value
             end
         end
     end

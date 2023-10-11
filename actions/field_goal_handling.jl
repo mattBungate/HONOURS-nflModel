@@ -30,14 +30,14 @@ function field_goal_value_calc(
     )
 
     for seconds in MIN_FIELD_GOAL_DURATION:MAX_FIELD_GOAL_DURATION
+        # Get time probability
         time_prob = time_probs[1, Symbol("$(seconds) secs")]
 
-        if time_prob > TIME_PROB_TOL
+        if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
             # Missed field goal outcome
             if current_state.ball_section < FIELD_GOAL_MERCY_SECTION
-                # Time of play stuff
                 next_state = State(
-                    current_state.seconds_remaining - 1, # Need to change this to seconds. Need data
+                    current_state.seconds_remaining - seconds,
                     -current_state.score_diff,
                     reverse(current_state.timeouts_remaining),
                     flip_field(current_state.ball_section),
@@ -47,12 +47,11 @@ function field_goal_value_calc(
                     false,
                     current_state.is_first_half
                 )
-                field_goal_value += (1 - field_goal_prob) * time_prob * -state_value_calc(
-                                        next_state
-                                    )[1]
+                field_goal_time_value = -state_value_calc(next_state)[1]
+                field_goal_value += (1 - field_goal_prob) * time_prob * field_goal_time_value
             else
                 next_state = State(
-                    current_state.seconds_remaining - 1, # Need to change this to seconds. Need data
+                    current_state.seconds_remaining - seconds,
                     -current_state.score_diff,
                     reverse(current_state.timeouts_remaining),
                     TOUCHBACK_SECTION,
@@ -62,9 +61,8 @@ function field_goal_value_calc(
                     false,
                     current_state.is_first_half
                 )
-                field_goal_value += (1 - field_goal_prob) * time_prob * -state_value_calc(
-                                        next_state
-                                    )[1]
+                field_goal_time_value = -state_value_calc(next_state)[1]
+                field_goal_value += (1 - field_goal_prob) * time_prob * field_goal_time_value
             end
 
             # Kick field goal outcome
@@ -79,9 +77,8 @@ function field_goal_value_calc(
                 false,
                 current_state.is_first_half
             )
-            field_goal_value += field_goal_prob * time_prob * -state_value_calc(
-                                    next_state
-                                )[1]
+            field_goal_time_value_made = -state_value_calc(next_state)[1]
+            field_goal_value += field_goal_prob * time_prob * field_goal_time_value_made
         end
     end
 
