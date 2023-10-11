@@ -1,5 +1,5 @@
 using DataFrames
-using CSV 
+using CSV
 using Distributions
 
 include("util/state.jl")
@@ -16,8 +16,10 @@ Parameters:
 state: State space currently occupied.
 """
 function state_value(
-    state:: State
+    state::State
 )
+    global state_value_calc_calls
+    state_value_calc_calls += 1
     # Base cases
     if state.plays_remaining <= 0
         if Bool(state.is_first_half)
@@ -36,7 +38,7 @@ function state_value(
     end
 
     # Check score to see if we want to be risky or risk-averse
-    action_space_vals = Dict{String, Float64}()
+    action_space_vals = Dict{String,Float64}()
 
     if state.score_diff > 0
         actions_ordered = actions
@@ -44,7 +46,7 @@ function state_value(
         actions_ordered = reverse(actions)
     end
 
-    optimal_value:: Union{Nothing, Float64} = nothing
+    optimal_value::Union{Nothing,Float64} = nothing
 
     for action in actions_ordered
         if action == "Play Timeout"
@@ -56,7 +58,7 @@ function state_value(
         end
         if action_value !== nothing
             action_space_vals[action] = action_value
-            if optimal_value === nothing 
+            if optimal_value === nothing
                 optimal_value = action_value
             elseif action_value > optimal_value
                 optimal_value = action_value
@@ -73,8 +75,10 @@ function state_value(
     return optimal_decision
 end
 
+global state_value_calc_calls = 0
+
 # Data
-const transition_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame 
+const transition_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame
 const field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
 const punt_df = CSV.File("processed_data/punt_stats.csv") |> DataFrame
 const punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
@@ -82,7 +86,7 @@ const punt_dist = Normal(punt_df[1, :"Mean"], punt_df[1, :"Std"])
 # Actions ordered in terms of risk (least to most)
 const actions = ["Kneel", "Punt", "Field Goal", "Play Timeout", "Play No Timeout"]
 
-const action_funcs = Dict{String, Function}(
+const action_funcs = Dict{String,Function}(
     "Kneel" => kneel_calc,
     "Punt" => punt_value,
     "Field Goal" => field_goal_attempt,
@@ -91,7 +95,7 @@ const action_funcs = Dict{String, Function}(
 )
 
 # Inputs
-const plays_remaining = 5
+const plays_remaining = 3
 const score_diff = 0
 const timeouts_remaining = 3
 const ball_position = TOUCHBACK_SECTION
@@ -111,13 +115,14 @@ const initial_state = State(
     is_first_half
 )
 
-state_values = Dict{State, Tuple{Float64, String}}()
+state_values = Dict{State,Tuple{Float64,String}}()
 
 println("Plays remaining: $plays_remaining")
 @time play_value_calc = state_value(
     initial_state
 )
 println(length(state_values))
+println("Number of function calls: $(state_value_calc_calls)")
 
 play_value_rounded = round(play_value_calc[1], digits=2)
 play_type = play_value_calc[2]
