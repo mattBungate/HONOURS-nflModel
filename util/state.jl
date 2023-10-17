@@ -11,7 +11,6 @@ Fields:
 - clock_ticking: Game clock ticking after play ends 
 - is_first_half: First or second half 
 """
-
 struct State
     seconds_remaining::Int
     score_diff::Int
@@ -22,4 +21,22 @@ struct State
     timeout_called::Bool
     clock_ticking::Bool
     is_first_half::Bool
+end
+
+# Set up printing state object
+function Base.show(io::IO, s::State)
+    print(
+        io,
+        "State(
+    Seconds remaining: $(s.seconds_remaining)
+    Score differential: $(s.score_diff)
+    Timeouts remaining: $(s.timeouts_remaining)
+    Ball section: $(s.ball_section)
+    Down: $(s.down)
+    First down section: $(s.first_down_section)
+    Timeout called: $(s.timeout_called ? "Y" : "N")
+    Clock ticking: $(s.clock_ticking ? "Y" : "N")
+    Half: $(s.is_first_half ? "First" : "Second")
+)"
+    )
 end

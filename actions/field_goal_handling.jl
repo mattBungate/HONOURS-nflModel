@@ -9,7 +9,8 @@ Probability could be calculated be calculated in function with state space
 Model already retrieves probability from DataFrame and stores in variable. No use retrieving again
 """
 function field_goal_value_calc(
-    current_state::State
+    current_state::State,
+    optimal_value::Union{Nothing,Float64}
 )::Union{Nothing,Float64}
 
     field_goal_value = 0

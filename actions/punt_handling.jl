@@ -8,9 +8,12 @@ Very simple implementation. Doesn't account for any state factors.
 Finds transition probs by creating a normal distrubtion fitted to all punts. 
 """
 function punt_value_calc(
-    current_state::State
-)
+    current_state::State,
+    optimal_value::Union{Nothing,Float64}
+)::Union{Nothing,Float64}
     punt_val = 0
+    prob_remaining = 1
+
     # Get Punt probabilities
     probabilities = filter(row ->
             (row[:"Punt Section"] == current_state.ball_section),
@@ -46,6 +49,7 @@ function punt_value_calc(
                             )
                             punt_time_value = state_value_calc(next_state)[1]
                             punt_val += end_section_prob * time_prob * punt_time_value
+                            prob_remaining -= end_section_prob * time_prob
                         end
                     end
                 end
@@ -79,6 +83,5 @@ function punt_value_calc(
             end
         end
     end
-
     return punt_val
 end

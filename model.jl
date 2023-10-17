@@ -10,6 +10,7 @@ include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
 include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
+include("actions/timeout_handling.jl")
 
 """
 Finds the optimal action given a state and returns that action and the expected value if taken. 
@@ -31,7 +32,7 @@ function state_value_calc(
         # 2nd half: maximise winning
         if state.score_diff > 0
             return 1, "End Game"
-        elseif score_diff == 0
+        elseif state.score_diff == 0
             return 0, "End Game"
         else
             return -1, "End Game"
@@ -46,40 +47,41 @@ function state_value_calc(
     # Initialise arrays to store action space and associated values
     action_values = Dict{String,Float64}()
 
+    # Order the actions
+    if state.score_diff > 0
+        action_space_ordered = action_space
+    else
+        action_space_ordered = reverse(action_space)
+    end
+
+    optimal_value::Union{Nothing,Float64} = nothing
+
     # Iterate through each action in action_space
-    for action in action_space
+    for action in action_space_ordered
+        #println("Checking play: $action")
         # Calculate action value
-        if action == "Timeout Play"
-            action_value = action_functions[action](state, true) # Clean this up
-        elseif action == "No Timeout Play"
-            action_value = action_functions[action](state, false) # Clean this up
+        if action == "Timeout"
+            action_value = action_functions[action](state, false, optimal_value) # Clean this up
+        elseif action == "Delayed Timeout"
+            action_value = action_functions[action](state, true, optimal_value) # Clean this up
         else
-            action_value = action_functions[action](state)
+            action_value = action_functions[action](state, optimal_value)
         end
         # Store action value if value returned        
         if action_value !== nothing
             action_values[action] = action_value
+            if optimal_value === nothing || optimal_value < action_value
+                #println("Replacing optimal value $(optimal_value) with $(action_value)")
+                optimal_value = action_value
+            end
         end
     end
 
     # Find optimal action
     optimal_action = findmax(action_values)
 
-    # Store all states (opp timeouts have no impact)
-    for i in 0:3
-        same_state_value = State(
-            state.seconds_remaining,
-            state.score_diff,
-            (state.timeouts_remaining[1], i),
-            state.ball_section,
-            state.down,
-            state.first_down_section,
-            state.timeout_called,
-            state.clock_ticking,
-            state.is_first_half
-        )
-        state_values[same_state_value] = optimal_action
-    end
+    # Store all states
+    state_values[state] = optimal_action
 
     return optimal_action
 end
@@ -97,22 +99,23 @@ time_field_goal_df = CSV.File("processed_data/field_goal_time_2022.csv") |> Data
 # Inputs
 seconds_remaining = 2
 score_diff = 0
-timeouts_remaining = (0, 0)
+timeouts_remaining = (3, 0)
 ball_position = TOUCHBACK_SECTION
 down = 1
 first_down_dist = TOUCHBACK_SECTION + FIRST_DOWN_TO_GO
 timeout_called = false
-clock_ticking = false
-is_first_half = true
+clock_ticking = true
+is_first_half = false
 
-action_space = ["Kneel", "Field Goal", "Punt", "No Timeout Play", "Timeout Play", "Spike"]
+action_space = ["Kneel", "Timeout", "Delayed Timeout", "Field Goal", "Punt", "Play", "Spike"]
 
 action_functions = Dict{String,Function}(
     "Kneel" => kneel_value_calc,
+    "Timeout" => timeout_value_calc,
+    "Delayed Timeout" => timeout_value_calc,
     "Field Goal" => field_goal_value_calc,
     "Punt" => punt_value_calc,
-    "No Timeout Play" => play_value_calc,
-    "Timeout Play" => play_value_calc,
+    "Play" => play_value_calc,
     "Spike" => spike_value_calc
 )
 
@@ -129,7 +132,8 @@ initial_state = State(
     clock_ticking,
     is_first_half
 )
-
+println("Initial state:")
+println(initial_state)
 
 println("Seconds remaining: $seconds_remaining")
 @time state_value = state_value_calc(
