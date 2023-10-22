@@ -49,8 +49,8 @@ function run_tests()
             Optimal_decision=[state_value[2]],
             Solve_time=[time_elapsed],
             States_stored=[length(state_values)],
-            Function_calls=[state_value_calc_calls]
-            Bytes_allocated = [bytes_allocated],
+            Function_calls=[state_value_calc_calls],
+            Bytes_allocated=[bytes_allocated],
             Garbage_collection_time=[gc_time],
             Number_of_allocations=[num_allocations]
         )

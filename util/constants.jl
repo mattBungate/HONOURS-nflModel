@@ -2,7 +2,7 @@
 All the constants that are used throughout this codebase
 """
 
-const VERSION_NUM = "V_2_3_0"
+const VERSION_NUM = "V_2_3_2"
 
 const SECTION_WIDTH = 1                                     # Width of the sections
 
