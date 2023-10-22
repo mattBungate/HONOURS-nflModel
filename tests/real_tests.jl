@@ -3,7 +3,11 @@
 MNV_KC_WK5_2023_1 = 1
 MNV_KC_WK5_2023_2 = 2
 LV_PIT_WK3_2023 = 3
-SS_PAT_SB_2015 = 4
+SEA_PAT_SB_2015 = 4
+JAX_NO_WK7_2023_1 = 5
+JAX_NO_WK7_2023_2 = 6
+JAX_NO_WK7_2023_3 = 7
+JAX_NO_WK7_2023_4 = 8
 
 """
 States of interesting plays in real games
@@ -66,6 +70,97 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             false
         ),
         "Pass"
+    ),
+    5 => (
+        State(
+            245,
+            -11,
+            (3, 3),
+            61,
+            4,
+            64,
+            false,
+            true,
+            true
+        ), "Pass"
+    ),
+    6 => (
+        State(
+            93,
+            8,
+            (3, 3),
+            54,
+            4,
+            56,
+            false,
+            true,
+            true
+        ), "Defenseive Timeout"
+    ),
+    7 => (
+        State(
+            93,
+            8,
+            (3, 2),
+            54,
+            4,
+            56,
+            true,
+            false,
+            true
+        ), "Fake Punt. Completed Pass"
+    ),
+    8 => (
+        State(
+            36,
+            8,
+            (3, 2),
+            75,
+            4,
+            77,
+            false,
+            true,
+            true
+        ), "Field Goal. Made."
+    ),
+    9 => (
+        State(
+            103,
+            -7,
+            (3, 3),
+            82,
+            1,
+            92,
+            false,
+            true,
+            false
+        ), "Pass. Incomplete"
+    ),
+    10 => (
+        State(
+            83,
+            -7,
+            (3, 3),
+            90,
+            3,
+            92,
+            false,
+            true,
+            false
+        ), "Run. Made first down"
+    ),
+    11 => (
+        State(
+            62,
+            -7,
+            (3, 3),
+            94,
+            1,
+            100,
+            false,
+            true,
+            false
+        ), "Pass. Incomplete"
     )
 )
 """
@@ -77,7 +172,14 @@ REAL_TEST_ACTION = Dict{Int,String}(
     1 => "False Start Penalty Attempt",
     2 => "Pass",
     3 => "Field Goal",
-    4 => "Pass"
+    4 => "Pass",
+    5 => "Pass",
+    6 => "Defensive timeout",
+    7 => "Fake punt. Pass",
+    8 => "Field Goal. Made",
+    9 => "Pass. Incomplete",
+    10 => "Run. Made first down",
+    11 => "Pass. Incomplete"
 )
 
 """
@@ -89,5 +191,11 @@ REAL_TEST_DESCRIPTION = Dict{Int,String}(
     1 => "4th & 7. Could have gone for Field Goal. Tried for false start penalty. Received delay of game penalty",
     2 => "4th & 12. Could have gone for Field Goal. Pass play. Deep right. Incomplete",
     3 => "4th & 4. Could have gone for it. Field Goal. Made",
-    4 => "4th & 1. Pass. Intercepted. Lost Superbowl."
+    4 => "4th & 1. Pass. Intercepted. Lost Superbowl.",
+    5 => "4th & 3. ",
+    6 => "4th & 2. Could go for it or punt. NO called defensive timeout",
+    7 => "4th & 2. Can go for it or punt. Fake punt. Pass completed.",
+    8 => "4th & 2 36s left. Kicked field goal. Could've gone for it. ",
+    9 => "1st & 10. Just made first down. 1:34 clock. No timeout. No huddle. 10 seconds to get off play. Pass incomplete",
+    10 => "3rd & 2. Clock ticking. No timeout called. Run play. Made first down"
 )

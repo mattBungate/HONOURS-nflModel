@@ -8,7 +8,6 @@ function delayed_timeout_value_calc(
 )::Union{Float64,Nothing}
     # Check timeouts remaining and clock ticking
     if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called
-        #println("Timeout cannot be called")
         return nothing
     end
     # Check if delayed timeout is an option
@@ -36,7 +35,6 @@ function immediate_timeout_value_calc(
 )::Union{Float64,Nothing}
     # Check if timeouts remaining & clock ticking
     if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called
-        #println("Timeout cannot be called")
         return nothing
     end
     next_state = State(

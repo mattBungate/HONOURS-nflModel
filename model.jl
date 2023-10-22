@@ -12,6 +12,7 @@ include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
 include("actions/timeout_handling.jl")
 include("tests/real_tests.jl")
+include("tests/run_tests.jl")
 
 """
 Finds the optimal action given a state and returns that action and the expected value if taken. 
@@ -62,26 +63,17 @@ function state_value_calc(
 
     # Iterate through each action in action_space
     for action in action_space_ordered
-        #println("Checking play: $action")
         # Calculate action value
         if isempty(action_values)
             action_value = action_functions[action](state, nothing)
         else
             action_value = action_functions[action](state, findmax(action_values))
         end
-        # Print info on whats going on
-        if state.seconds_remaining == 5
-            #println("$action | $action_value | $optimal_value")
-        end
         # Store action value if value returned        
         if action_value !== nothing
             action_values[action] = action_value
             if optimal_value === nothing || optimal_value < action_value
-                #println("Replacing optimal value $(optimal_value) with $(action_value)")
                 optimal_value = action_value
-                if state.seconds_remaining == 5
-                    #println("New optimal value from $action: $optimal_value")
-                end
             end
         else
             action_values[action] = -2
@@ -101,7 +93,7 @@ global state_value_calc_calls = 0
 
 # Data
 play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame # TODO: Missing data for last 10 yards with timeout called
-field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame
+field_goal_df = CSV.File("processed_data/field_goal_stats.csv") |> DataFrame # TODO: More accurate data (yard instead of 10 yard)
 punt_df = CSV.File("processed_data/punt_probs.csv") |> DataFrame
 time_df = CSV.File("processed_data/time_stats_2022.csv") |> DataFrame
 time_punt_df = CSV.File("processed_data/punt_time_stats_2022.csv") |> DataFrame
@@ -139,8 +131,6 @@ for section in NON_SCORING_FIELD_SECTIONS
 
                 # Change DataFrame
                 play_df[row_idx, :] = df_entry
-                #play_df[(play_df[:"Down"]==down)&&(play_df[:"Position"]==section)&&(play_df[:"Timeout_called"]==timeout_called)] = df_entry
-                #println("Changed $(down) $(section) $(timeout_called)")
                 changed_row = filter(row ->
                         (row[:"Down"] == down) &
                         (row[:"Position"] == section) &
@@ -187,7 +177,6 @@ action_functions = Dict{String,Function}(
 
 state_values = Dict{State,Tuple{Float64,String}}()
 
-state_val_calculation = state_value_calc(initial_state)
-println(state_val_calculation)
+run_tests()
 
 

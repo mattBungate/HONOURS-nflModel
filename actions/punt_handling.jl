@@ -40,7 +40,6 @@ function punt_value_calc(
         time_punt_df
     )
     if current_state.seconds_remaining <= MAX_PUNT_DURATION
-        println("Initialising best_case_end_game_prob")
         best_case_end_game_prob = 1
     end
     for seconds in MIN_PUNT_DURATION:MAX_PUNT_DURATION
@@ -103,7 +102,7 @@ function punt_value_calc(
             if end_section_prob > PROB_TOL
                 for seconds in MIN_PUNT_DURATION:MAX_PUNT_DURATION
                     # Get time prob
-                    if size(time_probs) > 1
+                    if size(time_probs, 1) > 0
                         time_prob = time_probs[1, Symbol("$(seconds) secs")]
                     else
                         if seconds == floor((MIN_PUNT_DURATION + MAX_PUNT_DURATION) / 2)
@@ -138,7 +137,7 @@ function punt_value_calc(
                         end
                     end
                     # Update end of game prob remaining
-                    if current_state.seconds <= MAX_PUNT_DURATION
+                    if current_state.seconds_remaining <= MAX_PUNT_DURATION
                         game_end_duration_prob -= time_prob
                     end
                 end
