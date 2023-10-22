@@ -4,14 +4,14 @@ Calculate the value of the Kneel action
 
 function kneel_value_calc(
     current_state::State,
-    optimal_value::Union{Nothing,Float64}
+    optimal_value::Union{Tuple{Float64,String},Nothing} #Union{Nothing,Float64}
 )::Union{Nothing,Float64}
     #println("Kneel")
     if current_state.down == 4
         next_state = State(
             current_state.seconds_remaining - 1, # Assume clock stops during turnonver
-            -score_diff,
-            reverse(timeouts_remaining),
+            -current_state.score_diff,
+            reverse(current_state.timeouts_remaining),
             flip_field(current_state.ball_section),
             FIRST_DOWN,
             flip_field(current_state.ball_section) + FIRST_DOWN_TO_GO,

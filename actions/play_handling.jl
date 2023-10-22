@@ -10,10 +10,14 @@ Type of play only impacts probabilities. Everything else can be calculated/infer
 """
 function play_value_calc(
     current_state::State,
-    optimal_value::Union{Nothing,Float64}
+    optimal_value_dict::Union{Tuple{Float64,String},Nothing} #Union{Nothing,Float64}
 )::Union{Nothing,Float64}
-    #println("\nIn play_value_calc function")
-
+    # println("In play_value_calc function. Optimal value: $optimal_value")
+    if optimal_value_dict === nothing
+        optimal_value = nothing
+    else
+        optimal_value = optimal_value_dict[1]
+    end
     play_value = 0
     prob_remaining = 1
 
@@ -27,7 +31,7 @@ function play_value_calc(
 
     # Touchdown scenario
     #println("Touchdown section")
-    if current_state.seconds_remaining < MAX_PLAY_LENGTH
+    if current_state.seconds_remaining <= MAX_PLAY_LENGTH
         #println("Initialising end of game prob | $(current_state.seconds_remaining) < $(MAX_PLAY_LENGTH)")
         end_of_game_prob = 1
     end
@@ -54,7 +58,9 @@ function play_value_calc(
                     time_prob = 0
                 end
             end
-            end_of_game_prob -= time_prob
+            if current_state.seconds_remaining <= MAX_PLAY_LENGTH
+                end_of_game_prob -= time_prob
+            end
         end
         if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
             next_state = State(
@@ -85,8 +91,7 @@ function play_value_calc(
 
     # Pick six scenario
     #println("\nPick sick scenario")
-    if current_state.seconds_remaining < MAX_PLAY_LENGTH
-        #println("Initialising end_of_game_prob")
+    if current_state.seconds_remaining <= MAX_PLAY_LENGTH
         end_of_game_prob = 1
     end
     pick_six_prob = probabilities[1, :"Def Endzone"]
@@ -95,18 +100,22 @@ function play_value_calc(
         dist_gained = -current_state.ball_section
         time_probabilities = filter(row ->
                 (row[:"Yards Gained"] == dist_gained) &
-                (row[:"Clock Stopped"] == 1), # TODO: update this
+                (row[:"Clock Stopped"] == current_state.clock_ticking),
             time_df
         )
         for seconds in MIN_PLAY_LENGTH:MAX_PLAY_LENGTH
             if seconds < current_state.seconds_remaining
                 if size(time_probabilities, 1) > 1
                     time_prob = time_probabilities[1, Symbol("$(seconds) seconds")]
-                    end_of_game_prob -= time_prob
+                    if current_state.seconds_remaining <= MAX_PLAY_LENGTH
+                        end_of_game_prob -= time_prob
+                    end
                 else
-                    if seconds == Int(ceil((MIN_PLAY_LENGTH + MAX_PLAY_LENGTH) / 2))
+                    if seconds == Int(ceil((MIN_PLAY_LENGTH + MAX_PLAY_LENGTH) / 2)) # TODO: fix data so this isn't necessary. Hacky fix
                         time_prob = 1
-                        end_of_game_prob = 0
+                        if current_state.seconds_remaining <= MAX_PLAY_LENGTH
+                            end_of_game_prob = 0
+                        end
                     else
                         time_prob = 0
                     end
@@ -115,7 +124,7 @@ function play_value_calc(
             if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
                 next_state = State(
                     current_state.seconds_remaining - seconds,
-                    -(current_state.score_diff - TOUCHDOWN_SCORE),
+                    current_state.score_diff - TOUCHDOWN_SCORE,
                     current_state.timeouts_remaining,
                     TOUCHBACK_SECTION,
                     FIRST_DOWN,
@@ -136,6 +145,10 @@ function play_value_calc(
                     prob_remaining -= pick_six_prob * end_of_game_prob
                 end
                 if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                    if current_state.seconds_remaining == 5
+                        #println("Exiting play calc")
+                        #println("$play_value | $prob_remaining | $upper_bound | $(play_value + prob_remaining * upper_bound)")
+                    end
                     return nothing
                 end
                 # Exit if game clock is 0 (all longer plays included in calculation)
@@ -157,7 +170,7 @@ function play_value_calc(
                 (row[:"Yards Gained"] == dist_gained),
             time_df
         )
-        if current_state.seconds_remaining < MAX_PLAY_LENGTH
+        if current_state.seconds_remaining <= MAX_PLAY_LENGTH
             end_of_game_prob = 1
         end
         # Transitions
@@ -174,7 +187,9 @@ function play_value_calc(
                                 time_prob = 0
                             end
                         end
-                        end_of_game_prob -= time_prob
+                        if current_state.seconds_remaining <= MAX_PLAY_LENGTH
+                            end_of_game_prob -= time_prob
+                        end
                     end
                     if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
                         # Non 4th down handling
@@ -192,7 +207,7 @@ function play_value_calc(
                                 current_state.timeouts_remaining,
                                 section,
                                 next_down, # Look into how I did this next_down crap
-                                next_down == 1 ? section + FIRST_DOWN_TO_GO : current_state.first_down_section, # This is probs wrong. Set up for 10yard thingo
+                                (next_down == 1) ? section + FIRST_DOWN_TO_GO : current_state.first_down_section,
                                 false,
                                 true, # Assumes clock is always ticking
                                 current_state.is_first_half
@@ -209,6 +224,10 @@ function play_value_calc(
                                 prob_remaining -= transition_prob * end_of_game_prob
                             end
                             if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                                if current_state.seconds_remaining == 5
+                                    #println("Exiting play calc | $section | $seconds")
+                                    #println("$play_value | $prob_remaining | $upper_bound | $(play_value + prob_remaining * upper_bound)")
+                                end
                                 return nothing
                             end
                             # Check if game has ended (and thus all longer plays have already been calcualted)
@@ -242,10 +261,14 @@ function play_value_calc(
                                     prob_remaining -= transition_prob * end_of_game_prob
                                 end
                                 if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                                    if current_state.seconds_remaining == 5
+                                        #println("Exiting play calc | $section | $seconds | 4th down")
+                                        #println("$play_value | $prob_remaining | $upper_bound | $(play_value + prob_remaining * upper_bound) | $optimal_value")
+                                    end
                                     return nothing
                                 end
                                 # Check if game is over (and thus all longer plays have been calcualted)
-                                if current_state.seconds == seconds
+                                if current_state.seconds_remaining == seconds
                                     break
                                 end
                             else
@@ -262,7 +285,7 @@ function play_value_calc(
                                     current_state.is_first_half
                                 )
                                 play_second_value = -state_value_calc(next_state)[1]
-                                if current_state.seconds > seconds
+                                if current_state.seconds_remaining > seconds
                                     #println("Updating play value for 4th down short play ending $(section) with time $(seconds). Not end of game")
                                     play_value += transition_prob * time_prob * play_second_value
                                     prob_remaining -= transition_prob * time_prob
@@ -273,10 +296,14 @@ function play_value_calc(
                                     prob_remaining -= transition_prob * end_of_game_prob
                                 end
                                 if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                                    if current_state.seconds_remaining == 5
+                                        #println("Exiting play calc | $section | $seconds | 4th down hsort")
+                                        #println("$play_value | $prob_remaining | $upper_bound | $(play_value + prob_remaining * upper_bound)")
+                                    end
                                     return nothing
                                 end
                                 # Check if game is over (and thus all longer plays have been calculated)
-                                if current_state.seconds == seconds
+                                if current_state.seconds_remaining == seconds
                                     break
                                 end
                             end
@@ -286,5 +313,7 @@ function play_value_calc(
             end
         end
     end
+    #println(current_state)
+    #println("Play value: $play_value\n")
     return play_value
 end
