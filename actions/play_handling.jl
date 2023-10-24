@@ -38,7 +38,7 @@ function play_value_calc(
     for seconds in MIN_PLAY_LENGTH:MAX_PLAY_LENGTH
         time_probabilities = filter(row ->
                 (row[:"Yards Gained"] >= dist_gained) &
-                (row[:"Clock Stopped"] == 1), # TODO: why is this here
+                (row[:"Clock Stopped"] == !current_state.clock_ticking),
             time_df
         )
         if current_state.seconds_remaining > seconds

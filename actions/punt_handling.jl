@@ -12,7 +12,7 @@ function punt_value_calc(
     optimal_value_tuple::Union{Tuple{Float64,String},Nothing} #Union{Nothing,Float64}
 )::Union{Nothing,Float64}
     # Assume only punt on 4th down
-    if current_state.down != 4
+    if current_state.down != 4 || current_state.ball_section == TOUCHDOWN_SECTION - 1
         return nothing
     end
     # Initialise values
@@ -69,7 +69,7 @@ function punt_value_calc(
                 best_case_state_value += best_case_end_game_prob * punt_time_value
                 break
             else
-                best_case_state_value += time_prob * punt_time_value # TODO: factor out best_case_prob for performance?
+                best_case_state_value += time_prob * punt_time_value
             end
         end
         if current_state.seconds_remaining <= MAX_PUNT_DURATION
