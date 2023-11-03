@@ -17,7 +17,7 @@ struct State
     timeouts_remaining::Tuple{Int,Int}
     ball_section::Int
     down::Int
-    first_down_section::Int
+    first_down_dist::Int
     timeout_called::Bool
     clock_ticking::Bool
     is_first_half::Bool
@@ -33,7 +33,7 @@ function Base.show(io::IO, s::State)
     Timeouts remaining: $(s.timeouts_remaining)
     Ball section: $(s.ball_section)
     Down: $(s.down)
-    First down section: $(s.first_down_section)
+    First down section: $(s.first_down_dist)
     Timeout called: $(s.timeout_called ? "Y" : "N")
     Clock ticking: $(s.clock_ticking ? "Y" : "N")
     Half: $(s.is_first_half ? "First" : "Second")

@@ -23,6 +23,7 @@ end
 
 
 global state_value_calc_calls = 0
+global interpolated_value_calls = 0
 
 # Data
 play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame # TODO: Missing data for last 10 yards with timeout called
@@ -118,17 +119,18 @@ dummy_test_state = State(
     test_state.timeouts_remaining,
     test_state.ball_section,
     test_state.down,
-    test_state.first_down_section,
+    test_state.first_down_dist,
     test_state.timeout_called,
     test_state.clock_ticking,
     test_state.is_first_half
 )
 println("Testing: $dummy_test_state")
-@time state_value_calculation = solve(
+@time solved_test_case = solve(
     dummy_test_state
 )
 
 println("States stored: $(length(state_values))")
+println("Interpolated states: $(interpolated_value_calls)")
 println("Function calls: $state_value_calc_calls")
-println("Optimal action: $(state_value_calculation[2])")
-println("Action value: $(state_value_calculation[1])")
+println("Optimal action: $(solved_test_case[2])")
+println("Action value: $(solved_test_case[1])")

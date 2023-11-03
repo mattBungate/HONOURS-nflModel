@@ -9,7 +9,7 @@ Finds transition probs by creating a normal distrubtion fitted to all punts.
 """
 function punt_value_calc(
     current_state::State,
-    optimal_value_tuple::Union{Tuple{Float64,String},Nothing} #Union{Nothing,Float64}
+    optimal_value_tuple::Union{Tuple{Float64,String},Nothing}, #Union{Nothing,Float64}
 )::Union{Nothing,Float64}
     # Assume only punt on 4th down
     if current_state.down != 4 || current_state.ball_section == TOUCHDOWN_SECTION - 1
@@ -59,7 +59,7 @@ function punt_value_calc(
                 reverse(current_state.timeouts_remaining),
                 1, # Best case is other team on 1 yard line
                 FIRST_DOWN,
-                1 + FIRST_DOWN_TO_GO,
+                FIRST_DOWN_TO_GO,
                 false,
                 false,
                 current_state.is_first_half
@@ -118,8 +118,8 @@ function punt_value_calc(
                             current_state.timeouts_remaining,
                             TOUCHBACK_SECTION,
                             FIRST_DOWN,
-                            TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
-                            false,
+                            FIRST_DOWN_TO_GO,
+                            true,
                             false, # Clock ticking handling. Need data
                             current_state.is_first_half
                         )
@@ -170,7 +170,7 @@ function punt_value_calc(
                             current_state.timeouts_remaining,
                             end_section,
                             FIRST_DOWN,
-                            end_section + FIRST_DOWN_TO_GO,
+                            FIRST_DOWN_TO_GO,
                             false,
                             false,
                             current_state.is_first_half

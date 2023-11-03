@@ -10,7 +10,7 @@ Type of play only impacts probabilities. Everything else can be calculated/infer
 """
 function play_value_calc(
     current_state::State,
-    optimal_value_dict::Union{Tuple{Float64,String},Nothing} #Union{Nothing,Float64}
+    optimal_value_dict::Union{Tuple{Float64,String},Nothing}, #Union{Nothing,Float64}
 )::Union{Nothing,Float64}
     if optimal_value_dict === nothing
         optimal_value = nothing
@@ -66,8 +66,8 @@ function play_value_calc(
                 reverse(current_state.timeouts_remaining),
                 TOUCHBACK_SECTION,
                 FIRST_DOWN,
-                TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
-                false,
+                FIRST_DOWN_TO_GO,
+                true,
                 false, # We assume fair catch for kickoff.
                 current_state.is_first_half
             )
@@ -119,12 +119,12 @@ function play_value_calc(
                     current_state.timeouts_remaining,
                     TOUCHBACK_SECTION,
                     FIRST_DOWN,
-                    TOUCHBACK_SECTION + FIRST_DOWN_TO_GO,
+                    FIRST_DOWN_TO_GO,
                     false,
                     false, # Clock stops after TD
                     current_state.is_first_half
                 )
-                play_second_value = -state_value_calc(next_state)[1]
+                play_second_value = state_value_calc(next_state)[1]
                 if seconds < current_state.seconds_remaining
                     play_value += pick_six_prob * time_prob * play_second_value
                     prob_remaining -= pick_six_prob * time_prob
@@ -177,11 +177,11 @@ function play_value_calc(
                     if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
                         # Non 4th down handling
                         if current_state.down < 4
-                            if section >= current_state.first_down_section
+                            if section >= current_state.ball_section + current_state.first_down_dist
                                 next_first_down = section + 1
                                 next_down = FIRST_DOWN
                             else
-                                next_first_down = current_state.first_down_section
+                                next_first_down = current_state.first_down_dist
                                 next_down = current_state.down + 1
                             end
                             next_state = State(
@@ -190,7 +190,7 @@ function play_value_calc(
                                 current_state.timeouts_remaining,
                                 section,
                                 next_down, # Look into how I did this next_down crap
-                                (next_down == 1) ? section + FIRST_DOWN_TO_GO : current_state.first_down_section,
+                                (next_down == 1) ? FIRST_DOWN_TO_GO : min(current_state.first_down_dist + current_state.ball_section - section, MAX_FIRST_DOWN),
                                 false,
                                 !Bool(clock_stopped),
                                 current_state.is_first_half
@@ -212,7 +212,7 @@ function play_value_calc(
                             end
                         else
                             # 4th down handling
-                            if section >= current_state.first_down_section
+                            if section >= current_state.first_down_dist
                                 # Made it
                                 next_state = State(
                                     current_state.seconds_remaining - seconds,
@@ -220,7 +220,7 @@ function play_value_calc(
                                     current_state.timeouts_remaining,
                                     section, # Probs rename
                                     FIRST_DOWN,
-                                    section + FIRST_DOWN_TO_GO,
+                                    FIRST_DOWN_TO_GO,
                                     false,
                                     !Bool(clock_stopped),
                                     current_state.is_first_half
@@ -248,7 +248,7 @@ function play_value_calc(
                                     reverse(current_state.timeouts_remaining),
                                     flip_field(current_state.ball_section),
                                     FIRST_DOWN,
-                                    flip_field(current_state.ball_section) + FIRST_DOWN_TO_GO,
+                                    FIRST_DOWN_TO_GO,
                                     false,
                                     false, # Clock stops during turnover in last 2 mins of 1st half and 5mins of 2nd half. All tests are within this range. 
                                     current_state.is_first_half

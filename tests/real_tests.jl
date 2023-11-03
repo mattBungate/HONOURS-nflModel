@@ -22,7 +22,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (0, 3),
             81,
             4,
-            88,
+            7,
             false,
             true,
             false
@@ -36,7 +36,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (0, 3),
             76,
             4,
-            88,
+            12,
             false,
             true,
             false
@@ -50,7 +50,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 2),
             92,
             4,
-            96,
+            4,
             false,
             false,
             false
@@ -64,7 +64,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (2, 2),
             99,
             2,
-            TOUCHDOWN_SECTION,
+            1,
             false,
             true,
             false
@@ -78,7 +78,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 3),
             61,
             4,
-            64,
+            3,
             false,
             true,
             true
@@ -91,7 +91,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 3),
             54,
             4,
-            56,
+            2,
             false,
             true,
             true
@@ -104,7 +104,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 2),
             54,
             4,
-            56,
+            2,
             true,
             false,
             true
@@ -117,7 +117,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 2),
             75,
             4,
-            77,
+            2,
             false,
             true,
             true
@@ -130,7 +130,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 3),
             82,
             1,
-            92,
+            10,
             false,
             true,
             false
@@ -143,7 +143,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 3),
             90,
             3,
-            92,
+            2,
             false,
             true,
             false
@@ -156,7 +156,7 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             (3, 3),
             94,
             1,
-            100,
+            6,
             false,
             true,
             false

@@ -20,7 +20,7 @@ function delayed_timeout_value_calc(
         (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
         current_state.ball_section,
         current_state.down,
-        current_state.first_down_section,
+        current_state.first_down_dist,
         true,
         false,
         current_state.is_first_half
@@ -43,7 +43,7 @@ function immediate_timeout_value_calc(
         (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
         current_state.ball_section,
         current_state.down,
-        current_state.first_down_section,
+        current_state.first_down_dist,
         true,
         false,
         current_state.is_first_half
