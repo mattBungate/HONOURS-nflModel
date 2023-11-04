@@ -2,7 +2,7 @@
 All the constants that are used throughout this codebase
 """
 
-const VERSION_NUM = "V_2_3_3"
+const VERSION_NUM = "V_2_4_2"
 
 const SECTION_WIDTH = 1                                     # Width of the sections
 
@@ -21,7 +21,7 @@ const FIELD_GOAL_SCORE = 3                                  # Score of a field g
 const FIRST_DOWN_TO_GO = 10                                 # Dist to first down if first down 
 const FIRST_DOWN = 1                                        # For clarity
 
-const PROB_TOL = 10e-8                                      # If prob is under its considered insignificant
+const PROB_TOL = 10e-4                                      # If prob is under its considered insignificant
 const TIME_PROB_TOL = 10e-3
 
 const KNEEL_DURATION = 40                                   # Time elapsed when Kneel action is taken
@@ -58,14 +58,14 @@ const MIN_TIME_TO_SCORE = 15
 5 yard for 30-70
 """
 #calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 45, 50, 55, 60, 65, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
-calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 82, 84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 87, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99]
 # TODO: Have a better way to set this up instead of hard coding array
 """
 1 second - 1-20 seconds
 2 second - 20-90 seconds
 5 second - 90+ seconds
 """
-calculated_first_down = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30]
+calculated_first_down = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30]
 println("First down calculated: $(calculated_first_down)")
 # Neighbours of sections
 ball_pos_neighbours = Dict{Int,Tuple{Int,Int}}()
@@ -86,7 +86,7 @@ for section in NON_SCORING_FIELD_SECTIONS
 end
 # Neighbours of time
 first_down_neighbours = Dict{Int,Tuple{Int,Int}}()
-for first_down_dist in 1:30 # TODO: Change this to iterate from 1 to max seconds
+for first_down_dist in 1:30
     if !in(first_down_dist, calculated_first_down)
         # Find lower neighbour
         lower_neighbour = first_down_dist - 1

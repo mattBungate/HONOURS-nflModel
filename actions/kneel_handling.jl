@@ -4,7 +4,7 @@ Calculate the value of the Kneel action
 
 function kneel_value_calc(
     current_state::State,
-    optimal_value::Union{Tuple{Float64,String},Nothing}, # Union{Nothing, Float64}
+    optimal_value::Union{Float64,Nothing},
 )::Union{Nothing,Float64}
     if current_state.down == 4 # Will not kneel on 4th down
         return nothing

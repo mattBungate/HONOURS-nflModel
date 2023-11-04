@@ -9,18 +9,13 @@ Finds transition probs by creating a normal distrubtion fitted to all punts.
 """
 function punt_value_calc(
     current_state::State,
-    optimal_value_tuple::Union{Tuple{Float64,String},Nothing}, #Union{Nothing,Float64}
+    optimal_value::Union{Nothing,Float64}
 )::Union{Nothing,Float64}
     # Assume only punt on 4th down
     if current_state.down != 4 || current_state.ball_section == TOUCHDOWN_SECTION - 1
         return nothing
     end
     # Initialise values
-    if optimal_value_tuple === nothing
-        optimal_value = nothing
-    else
-        optimal_value = optimal_value_tuple[1]
-    end
     punt_val = 0
     prob_remaining = 1
 

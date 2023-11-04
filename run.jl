@@ -14,6 +14,7 @@ include("actions/timeout_handling.jl")
 include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
+include("interpolation.jl")
 
 function solve(
     initial_state::State
@@ -97,6 +98,9 @@ initial_state = State(
     is_first_half
 )
 
+const INTERPOLATE_POSITION = true
+const INTERPOLATE_FIRST_DOWN = true
+
 action_space = ["Kneel", "Punt", "Timeout", "Delayed Timeout", "Field Goal", "Play", "Spike"]
 action_functions = Dict{String,Function}(
     "Kneel" => kneel_value_calc,
@@ -114,7 +118,7 @@ test_state = test_case[1]
 test_action = test_case[2]
 println(REAL_TEST_DESCRIPTION[4])
 dummy_test_state = State(
-    5,
+    10,
     test_state.score_diff,
     test_state.timeouts_remaining,
     test_state.ball_section,
@@ -124,9 +128,9 @@ dummy_test_state = State(
     test_state.clock_ticking,
     test_state.is_first_half
 )
-println("Testing: $dummy_test_state")
+println("Testing: $test_state")
 @time solved_test_case = solve(
-    dummy_test_state
+    test_state
 )
 
 println("States stored: $(length(state_values))")

@@ -4,7 +4,7 @@ Calculates the value of calling a timeout
 
 function delayed_timeout_value_calc(
     current_state::State,
-    optimal_value::Union{Tuple{Float64,String},Nothing}
+    optimal_value::Union{Float64,Nothing}
 )::Union{Float64,Nothing}
     # Check timeouts remaining and clock ticking
     if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called
@@ -31,7 +31,7 @@ end
 
 function immediate_timeout_value_calc(
     current_state::State,
-    optimal_value::Union{Tuple{Float64,String},Nothing}
+    optimal_value::Union{Float64,Nothing}
 )::Union{Float64,Nothing}
     # Check if timeouts remaining & clock ticking
     if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called

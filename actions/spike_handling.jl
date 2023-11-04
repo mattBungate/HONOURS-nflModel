@@ -3,7 +3,7 @@ Handle action Spike
 """
 function spike_value_calc(
     current_state::State,
-    optimal_value::Union{Tuple{Float64,String},Nothing}, #Union{Nothing,Float64}
+    optimal_value::Union{Nothing,Float64}
 )
     if current_state.down == 4 # Will not spike on 4th down
         return nothing
