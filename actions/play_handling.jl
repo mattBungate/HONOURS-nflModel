@@ -8,9 +8,29 @@ probabilities: Probability of transition (dependent on the play type)
 The type of play will be handled before this function is called.
 Type of play only impacts probabilities. Everything else can be calculated/infered
 """
+function delayed_play_action_calc(
+    current_state::State,
+    optimal_value::Union{Nothing,Float64},
+    seconds_cutoff::Int
+)
+    delayed_play_value = play_value_calc(current_state, optimal_value, 1, seconds_cutoff)
+    return delayed_play_value
+end
+
+function hurried_play_action_calc(
+    current_state::State,
+    optimal_value::Union{Nothing,Float64},
+    seconds_cutoff::Int
+)
+    hurried_play_value = play_value_calc(current_state, optimal_value, 0, seconds_cutoff)
+    return hurried_play_value
+end
+
 function play_value_calc(
     current_state::State,
-    optimal_value::Union{Nothing,Float64}
+    optimal_value::Union{Nothing,Float64},
+    delayed::Int,
+    seconds_cutoff::Int
 )::Union{Nothing,Float64}
     play_value = 0
     prob_remaining = 1
@@ -19,7 +39,7 @@ function play_value_calc(
     probabilities = filter(row ->
             (row[:"Down"] == current_state.down) &
             (row[:"Position"] == current_state.ball_section) &
-            (row[:"Timeout Used"] == current_state.timeout_called),
+            (row[:"Timeout Used"] == !current_state.clock_ticking), # TODO: Fix this so that prob is based on clock ticking or not
         play_df
     )
 
@@ -54,26 +74,24 @@ function play_value_calc(
                 end_of_game_prob -= time_prob
             end
         end
-        if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
-            next_state = State(
-                current_state.seconds_remaining - seconds,
-                -(current_state.score_diff + TOUCHDOWN_SCORE),
-                reverse(current_state.timeouts_remaining),
-                TOUCHBACK_SECTION,
-                FIRST_DOWN,
-                FIRST_DOWN_TO_GO,
-                true,
-                false, # We assume fair catch for kickoff.
-                current_state.is_first_half
-            )
-            play_second_value = -state_value_calc(next_state)[1]
-            if current_state.seconds_remaining > seconds
-                upper_bound += time_prob * play_second_value
-            else
-                upper_bound += end_of_game_prob * play_second_value
-                break
-            end
+        #if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
+        next_state = State(
+            max(current_state.seconds_remaining - seconds - delayed * MAX_PLAY_CLOCK_DURATION, 0), # This will likely give errors in terms of the time prob bullshit
+            -(current_state.score_diff + TOUCHDOWN_SCORE),
+            reverse(current_state.timeouts_remaining),
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false, # We assume fair catch for kickoff.
+        )
+        play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        if current_state.seconds_remaining > seconds
+            upper_bound += time_prob * play_second_value
+        else
+            upper_bound += end_of_game_prob * play_second_value
+            break
         end
+        #end
     end
     prob_remaining -= td_prob
 
@@ -107,34 +125,32 @@ function play_value_calc(
                     end
                 end
             end
-            if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
-                next_state = State(
-                    current_state.seconds_remaining - seconds,
-                    current_state.score_diff - TOUCHDOWN_SCORE,
-                    current_state.timeouts_remaining,
-                    TOUCHBACK_SECTION,
-                    FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
-                    false,
-                    false, # Clock stops after TD
-                    current_state.is_first_half
-                )
-                play_second_value = state_value_calc(next_state)[1]
-                if seconds < current_state.seconds_remaining
-                    play_value += pick_six_prob * time_prob * play_second_value
-                    prob_remaining -= pick_six_prob * time_prob
-                else
-                    play_value += pick_six_prob * end_of_game_prob * play_second_value
-                    prob_remaining -= pick_six_prob * end_of_game_prob
-                end
-                if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
-                    return nothing
-                end
-                # Exit if game clock is 0 (all longer plays included in calculation)
-                if seconds == current_state.seconds_remaining
-                    break
-                end
+            #if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
+            next_state = State(
+                max(current_state.seconds_remaining - seconds - delayed * MAX_PLAY_CLOCK_DURATION, 0), # This will likely give errors for end of game probs (time probs)
+                current_state.score_diff - TOUCHDOWN_SCORE,
+                current_state.timeouts_remaining,
+                TOUCHBACK_SECTION,
+                FIRST_DOWN,
+                FIRST_DOWN_TO_GO,
+                false, # Clock stops after TD
+            )
+            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+            if seconds < current_state.seconds_remaining
+                play_value += pick_six_prob * time_prob * play_second_value
+                prob_remaining -= pick_six_prob * time_prob
+            else
+                play_value += pick_six_prob * end_of_game_prob * play_second_value
+                prob_remaining -= pick_six_prob * end_of_game_prob
             end
+            if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                return nothing
+            end
+            # Exit if game clock is 0 (all longer plays included in calculation)
+            if seconds == current_state.seconds_remaining
+                break
+            end
+            #end
         end
     end
     prob_remaining -= pick_six_prob
@@ -169,29 +185,55 @@ function play_value_calc(
                             end_of_game_prob -= time_prob
                         end
                     end
-                    if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
-                        # Non 4th down handling
-                        if current_state.down < 4
-                            if section >= current_state.ball_section + current_state.first_down_dist
-                                next_first_down = section + 1
-                                next_down = FIRST_DOWN
-                            else
-                                next_first_down = current_state.first_down_dist
-                                next_down = current_state.down + 1
-                            end
+                    #if seconds == current_state.seconds_remaining || time_prob > TIME_PROB_TOL
+                    # Non 4th down handling
+                    if current_state.down < 4
+                        if section >= current_state.ball_section + current_state.first_down_dist
+                            next_first_down = section + 1
+                            next_down = FIRST_DOWN
+                        else
+                            next_first_down = current_state.first_down_dist
+                            next_down = current_state.down + 1
+                        end
+                        next_state = State(
+                            max(current_state.seconds_remaining - seconds - delayed * MAX_PLAY_CLOCK_DURATION), # TODO: Likely returns faulty for end of game time probs
+                            current_state.score_diff,
+                            current_state.timeouts_remaining,
+                            section,
+                            next_down, # Look into how I did this next_down crap
+                            (next_down == 1) ? FIRST_DOWN_TO_GO : min(current_state.first_down_dist + current_state.ball_section - section, MAX_FIRST_DOWN),
+                            !Bool(clock_stopped)
+                        )
+                        play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                        if seconds < current_state.seconds_remaining
+                            play_value += transition_prob * time_prob * play_second_value
+                            prob_remaining -= transition_prob * time_prob
+                        else
+                            play_value += transition_prob * end_of_game_prob * play_second_value
+                            prob_remaining -= transition_prob * end_of_game_prob
+                        end
+                        if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                            return nothing
+                        end
+                        # Check if game has ended (and thus all longer plays have already been calcualted)
+                        if seconds == current_state.seconds_remaining
+                            break
+                        end
+                    else
+                        # 4th down handling
+                        if section >= current_state.first_down_dist
+                            # Made it
                             next_state = State(
-                                current_state.seconds_remaining - seconds,
+                                max(current_state.seconds_remaining - seconds, 0), # TODO: Likely returns faulty for end of game time probs
                                 current_state.score_diff,
                                 current_state.timeouts_remaining,
-                                section,
-                                next_down, # Look into how I did this next_down crap
-                                (next_down == 1) ? FIRST_DOWN_TO_GO : min(current_state.first_down_dist + current_state.ball_section - section, MAX_FIRST_DOWN),
-                                false,
-                                !Bool(clock_stopped),
-                                current_state.is_first_half
+                                section, # Probs rename
+                                FIRST_DOWN,
+                                FIRST_DOWN_TO_GO,
+                                !Bool(clock_stopped)
                             )
-                            play_second_value = state_value_calc(next_state)[1]
-                            if seconds < current_state.seconds_remaining
+                            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                            if current_state.seconds_remaining > seconds
                                 play_value += transition_prob * time_prob * play_second_value
                                 prob_remaining -= transition_prob * time_prob
                             else
@@ -201,71 +243,39 @@ function play_value_calc(
                             if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
                                 return nothing
                             end
-                            # Check if game has ended (and thus all longer plays have already been calcualted)
-                            if seconds == current_state.seconds_remaining
+                            # Check if game is over (and thus all longer plays have been calcualted)
+                            if current_state.seconds_remaining == seconds
                                 break
                             end
                         else
-                            # 4th down handling
-                            if section >= current_state.first_down_dist
-                                # Made it
-                                next_state = State(
-                                    current_state.seconds_remaining - seconds,
-                                    current_state.score_diff,
-                                    current_state.timeouts_remaining,
-                                    section, # Probs rename
-                                    FIRST_DOWN,
-                                    FIRST_DOWN_TO_GO,
-                                    false,
-                                    !Bool(clock_stopped),
-                                    current_state.is_first_half
-                                )
-                                play_second_value = state_value_calc(next_state)[1]
-                                if current_state.seconds_remaining > seconds
-                                    play_value += transition_prob * time_prob * play_second_value
-                                    prob_remaining -= transition_prob * time_prob
-                                else
-                                    play_value += transition_prob * end_of_game_prob * play_second_value
-                                    prob_remaining -= transition_prob * end_of_game_prob
-                                end
-                                if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
-                                    return nothing
-                                end
-                                # Check if game is over (and thus all longer plays have been calcualted)
-                                if current_state.seconds_remaining == seconds
-                                    break
-                                end
+                            # Short of 1st down
+                            next_state = State(
+                                max(current_state.seconds_remaining - seconds, 0), # TODO: Likely returns faulty for end of game time probs
+                                -current_state.score_diff,
+                                reverse(current_state.timeouts_remaining),
+                                flip_field(current_state.ball_section),
+                                FIRST_DOWN,
+                                FIRST_DOWN_TO_GO,
+                                false, # Clock stops during turnover in last 2 mins of 1st half and 5mins of 2nd half. All tests are within this range.
+                            )
+                            play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                            if current_state.seconds_remaining > seconds
+                                play_value += transition_prob * time_prob * play_second_value
+                                prob_remaining -= transition_prob * time_prob
                             else
-                                # Short of 1st down
-                                next_state = State(
-                                    current_state.seconds_remaining - seconds,
-                                    -current_state.score_diff,
-                                    reverse(current_state.timeouts_remaining),
-                                    flip_field(current_state.ball_section),
-                                    FIRST_DOWN,
-                                    FIRST_DOWN_TO_GO,
-                                    false,
-                                    false, # Clock stops during turnover in last 2 mins of 1st half and 5mins of 2nd half. All tests are within this range. 
-                                    current_state.is_first_half
-                                )
-                                play_second_value = -state_value_calc(next_state)[1]
-                                if current_state.seconds_remaining > seconds
-                                    play_value += transition_prob * time_prob * play_second_value
-                                    prob_remaining -= transition_prob * time_prob
-                                else
-                                    play_value += transition_prob * end_of_game_prob * play_second_value
-                                    prob_remaining -= transition_prob * end_of_game_prob
-                                end
-                                if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
-                                    return nothing
-                                end
-                                # Check if game is over (and thus all longer plays have been calculated)
-                                if current_state.seconds_remaining == seconds
-                                    break
-                                end
+                                play_value += transition_prob * end_of_game_prob * play_second_value
+                                prob_remaining -= transition_prob * end_of_game_prob
+                            end
+                            if optimal_value !== nothing && play_value + prob_remaining * upper_bound < optimal_value
+                                return nothing
+                            end
+                            # Check if game is over (and thus all longer plays have been calculated)
+                            if current_state.seconds_remaining == seconds
+                                break
                             end
                         end
                     end
+                    #end
                 end
             end
         end

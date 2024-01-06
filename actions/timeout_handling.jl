@@ -4,10 +4,11 @@ Calculates the value of calling a timeout
 
 function delayed_timeout_value_calc(
     current_state::State,
-    optimal_value::Union{Float64,Nothing}
+    optimal_value::Union{Float64,Nothing},
+    seconds_cutoff::Int
 )::Union{Float64,Nothing}
     # Check timeouts remaining and clock ticking
-    if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called
+    if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking
         return nothing
     end
     # Check if delayed timeout is an option
@@ -21,20 +22,19 @@ function delayed_timeout_value_calc(
         current_state.ball_section,
         current_state.down,
         current_state.first_down_dist,
-        true,
-        false,
-        current_state.is_first_half
+        false
     )
-    delayed_timeout_val = state_value_calc(next_state)[1]
+    delayed_timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
     return delayed_timeout_val
 end
 
 function immediate_timeout_value_calc(
     current_state::State,
-    optimal_value::Union{Float64,Nothing}
+    optimal_value::Union{Float64,Nothing},
+    seconds_cutoff::Int
 )::Union{Float64,Nothing}
     # Check if timeouts remaining & clock ticking
-    if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking || current_state.timeout_called
+    if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking
         return nothing
     end
     next_state = State(
@@ -44,10 +44,8 @@ function immediate_timeout_value_calc(
         current_state.ball_section,
         current_state.down,
         current_state.first_down_dist,
-        true,
-        false,
-        current_state.is_first_half
+        false
     )
-    timeout_val = state_value_calc(next_state)[1]
+    timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
     return timeout_val
 end

@@ -14,7 +14,7 @@ States of interesting plays in real games
 Key: GAME ID
 Value: State object of state of game
 """
-REAL_TESTS = Dict{Int,Tuple{State,String}}(
+REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
     1 => (
         State(
             296,
@@ -23,10 +23,9 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             81,
             4,
             7,
-            false,
-            true,
-            false
+            true
         ),
+        false,
         "Delay of Game Penalty"
     ),
     2 => (
@@ -37,10 +36,9 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             76,
             4,
             12,
-            false,
-            true,
-            false
+            true
         ),
+        false,
         "Pass"
     ),
     3 => (
@@ -51,10 +49,9 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             92,
             4,
             4,
-            false,
-            false,
             false
         ),
+        false,
         "Field Goal"
     ),
     4 => (
@@ -65,10 +62,9 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             99,
             2,
             1,
-            false,
-            true,
-            false
+            true
         ),
+        false,
         "Pass"
     ),
     5 => (
@@ -79,10 +75,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             61,
             4,
             3,
-            false,
-            true,
             true
-        ), "Pass"
+        ),
+        true,
+        "Pass"
     ),
     6 => (
         State(
@@ -92,10 +88,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             54,
             4,
             2,
-            false,
-            true,
             true
-        ), "Defenseive Timeout"
+        ),
+        true,
+        "Defenseive Timeout"
     ),
     7 => (
         State(
@@ -105,10 +101,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             54,
             4,
             2,
-            true,
-            false,
-            true
-        ), "Fake Punt. Completed Pass"
+            false
+        ),
+        true,
+        "Fake Punt. Completed Pass"
     ),
     8 => (
         State(
@@ -118,10 +114,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             75,
             4,
             2,
-            false,
-            true,
             true
-        ), "Field Goal. Made."
+        ),
+        true,
+        "Field Goal. Made."
     ),
     9 => (
         State(
@@ -131,10 +127,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             82,
             1,
             10,
-            false,
-            true,
-            false
-        ), "Pass. Incomplete"
+            true
+        ),
+        false,
+        "Pass. Incomplete"
     ),
     10 => (
         State(
@@ -144,10 +140,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             90,
             3,
             2,
-            false,
-            true,
-            false
-        ), "Run. Made first down"
+            true
+        ),
+        false,
+        "Run. Made first down"
     ),
     11 => (
         State(
@@ -157,10 +153,10 @@ REAL_TESTS = Dict{Int,Tuple{State,String}}(
             94,
             1,
             6,
-            false,
-            true,
-            false
-        ), "Pass. Incomplete"
+            true
+        ),
+        false,
+        "Pass. Incomplete"
     )
 )
 """

@@ -24,7 +24,7 @@ const FIRST_DOWN = 1                                        # For clarity
 const PROB_TOL = 10e-4                                      # If prob is under its considered insignificant
 const TIME_PROB_TOL = 10e-3
 
-const KNEEL_DURATION = 40                                   # Time elapsed when Kneel action is taken
+const MAX_PLAY_CLOCK_DURATION = 40                          # Time elapsed when Kneel action is taken
 
 const FIELD_GOAL_CUTOFF = 50                                # Max distance a team will attempt a field goal from
 
@@ -58,14 +58,17 @@ const MIN_TIME_TO_SCORE = 15
 5 yard for 30-70
 """
 #calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 45, 50, 55, 60, 65, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
-calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 87, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+#calculated_sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 87, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+calculated_sections = [1, 3, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95, 97, 99]
+println("Calculated ball positions: $(calculated_sections)")
 # TODO: Have a better way to set this up instead of hard coding array
 """
 1 second - 1-20 seconds
 2 second - 20-90 seconds
 5 second - 90+ seconds
 """
-calculated_first_down = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30]
+#calculated_first_down = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30]
+calculated_first_down = [1, 3, 5, 10, 20, 30]
 println("First down calculated: $(calculated_first_down)")
 # Neighbours of sections
 ball_pos_neighbours = Dict{Int,Tuple{Int,Int}}()
@@ -101,3 +104,9 @@ for first_down_dist in 1:30
         first_down_neighbours[first_down_dist] = (lower_neighbour, upper_neighbour)
     end
 end
+# Time values
+seconds_calculated = [1, 2, 3, 5, 7, 9, 11, 13, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120]
+println("Seconds Calculated: $(seconds_calculated)")
+println("Number of First down dist values: $(length(calculated_first_down))")
+println("Number of ball positions calculated: $(length(calculated_sections))")
+println("Number of secodns calculated: $(length(seconds_calculated))")

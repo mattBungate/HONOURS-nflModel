@@ -9,7 +9,8 @@ Finds transition probs by creating a normal distrubtion fitted to all punts.
 """
 function punt_value_calc(
     current_state::State,
-    optimal_value::Union{Nothing,Float64}
+    optimal_value::Union{Nothing,Float64},
+    seconds_cutoff::Int
 )::Union{Nothing,Float64}
     # Assume only punt on 4th down
     if current_state.down != 4 || current_state.ball_section == TOUCHDOWN_SECTION - 1
@@ -47,26 +48,24 @@ function punt_value_calc(
                 time_prob = 0
             end
         end
-        if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
-            next_state = State(
-                current_state.seconds_remaining - seconds,
-                -current_state.score_diff,
-                reverse(current_state.timeouts_remaining),
-                1, # Best case is other team on 1 yard line
-                FIRST_DOWN,
-                FIRST_DOWN_TO_GO,
-                false,
-                false,
-                current_state.is_first_half
-            )
-            punt_time_value = -state_value_calc(next_state)[1]
-            if current_state.seconds_remaining <= seconds
-                best_case_state_value += best_case_end_game_prob * punt_time_value
-                break
-            else
-                best_case_state_value += time_prob * punt_time_value
-            end
+        #if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
+        next_state = State(
+            current_state.seconds_remaining - seconds,
+            -current_state.score_diff,
+            reverse(current_state.timeouts_remaining),
+            1, # Best case is other team on 1 yard line
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false
+        )
+        punt_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        if current_state.seconds_remaining <= seconds
+            best_case_state_value += best_case_end_game_prob * punt_time_value
+            break
+        else
+            best_case_state_value += time_prob * punt_time_value
         end
+        #end
         if current_state.seconds_remaining <= MAX_PUNT_DURATION
             best_case_end_game_prob -= time_prob
         end
@@ -106,31 +105,29 @@ function punt_value_calc(
                             time_prob = 0
                         end
                     end
-                    if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
-                        next_state = State(
-                            current_state.seconds_remaining - seconds,
-                            current_state.score_diff - TOUCHDOWN_SCORE,
-                            current_state.timeouts_remaining,
-                            TOUCHBACK_SECTION,
-                            FIRST_DOWN,
-                            FIRST_DOWN_TO_GO,
-                            true,
-                            false, # Clock ticking handling. Need data
-                            current_state.is_first_half
-                        )
-                        punt_time_value = state_value_calc(next_state)[1]
-                        if current_state.seconds_remaining <= seconds
-                            punt_val += end_section_prob * game_end_duration_prob * punt_time_value
-                            prob_remaining -= end_section_prob * game_end_duration_prob
-                        else
-                            punt_val += end_section_prob * time_prob * punt_time_value
-                            prob_remaining -= end_section_prob * time_prob
-                        end
-                        # Check for optimality
-                        if optimal_value !== nothing && punt_val + prob_remaining * best_case_state_value < optimal_value
-                            return nothing
-                        end
+                    #if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
+                    next_state = State(
+                        current_state.seconds_remaining - seconds,
+                        current_state.score_diff - TOUCHDOWN_SCORE,
+                        current_state.timeouts_remaining,
+                        TOUCHBACK_SECTION,
+                        FIRST_DOWN,
+                        FIRST_DOWN_TO_GO,
+                        false, # Clock ticking handling. Need data
+                    )
+                    punt_time_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                    if current_state.seconds_remaining <= seconds
+                        punt_val += end_section_prob * game_end_duration_prob * punt_time_value
+                        prob_remaining -= end_section_prob * game_end_duration_prob
+                    else
+                        punt_val += end_section_prob * time_prob * punt_time_value
+                        prob_remaining -= end_section_prob * time_prob
                     end
+                    # Check for optimality
+                    if optimal_value !== nothing && punt_val + prob_remaining * best_case_state_value < optimal_value
+                        return nothing
+                    end
+                    #end
                     # Update end of game prob remaining
                     if current_state.seconds_remaining <= MAX_PUNT_DURATION
                         game_end_duration_prob -= time_prob
@@ -158,31 +155,29 @@ function punt_value_calc(
                             time_prob = 0
                         end
                     end
-                    if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
-                        next_state = State(
-                            current_state.seconds_remaining - seconds,
-                            -current_state.score_diff,
-                            current_state.timeouts_remaining,
-                            end_section,
-                            FIRST_DOWN,
-                            FIRST_DOWN_TO_GO,
-                            false,
-                            false,
-                            current_state.is_first_half
-                        )
-                        punt_time_val = -state_value_calc(next_state)[1]
-                        if current_state.seconds_remaining <= seconds
-                            punt_val += end_section_prob * game_end_duration_prob * punt_time_val
-                            prob_remaining -= end_section_prob * game_end_duration_prob
-                        else
-                            punt_val += end_section_prob * time_prob * punt_time_val
-                            prob_remaining -= end_section_prob * time_prob
-                        end
-                        # Check if can still be optimal
-                        if optimal_value !== nothing && punt_val + prob_remaining * best_case_state_value < optimal_value
-                            return nothing
-                        end
+                    #if time_prob > TIME_PROB_TOL || seconds == current_state.seconds_remaining
+                    next_state = State(
+                        current_state.seconds_remaining - seconds,
+                        -current_state.score_diff,
+                        current_state.timeouts_remaining,
+                        end_section,
+                        FIRST_DOWN,
+                        FIRST_DOWN_TO_GO,
+                        false
+                    )
+                    punt_time_val = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                    if current_state.seconds_remaining <= seconds
+                        punt_val += end_section_prob * game_end_duration_prob * punt_time_val
+                        prob_remaining -= end_section_prob * game_end_duration_prob
+                    else
+                        punt_val += end_section_prob * time_prob * punt_time_val
+                        prob_remaining -= end_section_prob * time_prob
                     end
+                    # Check if can still be optimal
+                    if optimal_value !== nothing && punt_val + prob_remaining * best_case_state_value < optimal_value
+                        return nothing
+                    end
+                    #end
                     # Update end game duration prob
                     if current_state.seconds_remaining <= seconds
                         game_end_duration_prob -= time_prob

@@ -4,38 +4,44 @@ Finds the optimal action given a state and returns that action and the expected 
 Parameters:
 state: State space currently occupied.
 """
-function state_value_calc(
-    state::State
+function state_value_calc_LDFS(
+    state::State,
+    seconds_cutoff::Int, 
+    is_root::Bool
 )
+    yield()
     global state_value_calc_calls
-    state_value_calc_calls += 1
     if mod(state_value_calc_calls, FUNCTION_CALL_PRINT_INTERVAL) == 0
         println("Function called $(state_value_calc_calls/1000000)M times")
     end
+    state_value_calc_calls += 1
     # Base cases
-    if state.seconds_remaining <= 0
-        # 1st half: maximise points
-        if state.is_first_half
-            return state.score_diff, "End 1st half"
+    if state.seconds_remaining <= seconds_cutoff
+        return evaluate_game(state)
+    end
+
+    # Return if score differential bound is hit
+    if IS_FIRST_HALF
+        if abs(starting_score_diff - state.score_diff) > SCORE_BOUND
+            return state.score_diff, "Score bound hit"
         end
-        # 2nd half: maximise winning
-        if state.score_diff > 0
-            return 1, "End Game"
-        elseif state.score_diff == 0
-            return 0, "End Game"
-        else
-            return -1, "End Game"
+    else
+        if state.score_diff > SCORE_BOUND
+            return 1
+        elseif state.score_diff < -SCORE_BOUND
+            return -1
         end
     end
 
-    interpolated_output = interpolate_state_calc(state)
-    if interpolated_output !== nothing
-        return interpolated_output
+    if !is_root
+        interpolated_output = interpolate_state_calc(state, seconds_cutoff)
+        if interpolated_output !== nothing
+            return interpolated_output
+        end
     end
 
     # Check if state is cached
     if haskey(state_values, state)
-        #println("($(state.seconds_remaining),$(state.ball_section)) | State cached")
         return state_values[state]
     end
 
@@ -56,7 +62,8 @@ function state_value_calc(
         # Calculate action value
         action_value = action_functions[action](
             state,
-            nothing
+            nothing, 
+            seconds_cutoff
         )
         # Store action value if value returned        
         if action_value !== nothing
