@@ -30,8 +30,8 @@ function interpolate_state_calc(
             state.clock_ticking
         )
         # Retrieve values of states
-        lower_value = state_value_calc_LDFS(lower_state, seconds_cutoff, false)
-        upper_value = state_value_calc_LDFS(upper_state, seconds_cutoff, false)
+        lower_value = state_value_calc_LDFS(lower_state, seconds_cutoff, false, "")
+        upper_value = state_value_calc_LDFS(upper_state, seconds_cutoff, false, "")
 
         # Calculate weight of upper/lower state
         lower_weight = (state.first_down_dist - lower_neigh_first_down) / (upper_neigh_first_down - lower_neigh_first_down)
@@ -68,8 +68,8 @@ function interpolate_state_calc(
             state.clock_ticking
         )
         # Retrieve values of states
-        lower_value = state_value_calc_LDFS(lower_state, seconds_cutoff, false)
-        upper_value = state_value_calc_LDFS(upper_state, seconds_cutoff, false)
+        lower_value = state_value_calc_LDFS(lower_state, seconds_cutoff, false, "")
+        upper_value = state_value_calc_LDFS(upper_state, seconds_cutoff, false, "")
 
         # Calculate weightings
         lower_weight = (state.ball_section - lower_neigh_ball_pos) / (upper_neigh_ball_pos - lower_neigh_ball_pos)
@@ -102,8 +102,8 @@ function interpolate_state_calc(
             state.first_down_dist,
             state.clock_ticking
         )
-        closer_value = state_value_calc_LDFS(closer_state, seconds_cutoff, false)
-        further_value = state_value_calc_LDFS(further_state, seconds_cutoff, false)
+        closer_value = state_value_calc_LDFS(closer_state, seconds_cutoff, false, "")
+        further_value = state_value_calc_LDFS(further_state, seconds_cutoff, false, "")
         # Interpolate
         interpolated_value = 2 * closer_value[1] - further_value[1]
         global interpolated_value_calls

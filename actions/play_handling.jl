@@ -84,7 +84,7 @@ function play_value_calc(
             FIRST_DOWN_TO_GO,
             false, # We assume fair catch for kickoff.
         )
-        play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
         if current_state.seconds_remaining > seconds
             upper_bound += time_prob * play_second_value
         else
@@ -135,7 +135,7 @@ function play_value_calc(
                 FIRST_DOWN_TO_GO,
                 false, # Clock stops after TD
             )
-            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
             if seconds < current_state.seconds_remaining
                 play_value += pick_six_prob * time_prob * play_second_value
                 prob_remaining -= pick_six_prob * time_prob
@@ -204,7 +204,7 @@ function play_value_calc(
                             (next_down == 1) ? FIRST_DOWN_TO_GO : min(current_state.first_down_dist + current_state.ball_section - section, MAX_FIRST_DOWN),
                             !Bool(clock_stopped)
                         )
-                        play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                        play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
                         if seconds < current_state.seconds_remaining
                             play_value += transition_prob * time_prob * play_second_value
                             prob_remaining -= transition_prob * time_prob
@@ -232,7 +232,7 @@ function play_value_calc(
                                 FIRST_DOWN_TO_GO,
                                 !Bool(clock_stopped)
                             )
-                            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                            play_second_value = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
                             if current_state.seconds_remaining > seconds
                                 play_value += transition_prob * time_prob * play_second_value
                                 prob_remaining -= transition_prob * time_prob
@@ -258,7 +258,7 @@ function play_value_calc(
                                 FIRST_DOWN_TO_GO,
                                 false, # Clock stops during turnover in last 2 mins of 1st half and 5mins of 2nd half. All tests are within this range.
                             )
-                            play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                            play_second_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
                             if current_state.seconds_remaining > seconds
                                 play_value += transition_prob * time_prob * play_second_value
                                 prob_remaining -= transition_prob * time_prob

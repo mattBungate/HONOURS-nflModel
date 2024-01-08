@@ -16,18 +16,32 @@ include("tests/run_tests.jl")
 include("state_value_calc.jl")
 include("interpolation.jl")
 include("evaluate_game.jl")
+include("order_actions.jl")
 
 function solve_LDFS(
     initial_state::State,
-    depth::Int
+    initial_depth::Int,
+    depth_step::Int
 )
-    try
-        seconds_cutoff = initial_state.seconds_remaining - depth
-        return state_value_calc_LDFS(initial_state, seconds_cutoff, true)
-    catch e
-        if isa(e, InterruptException)
+    best_move = ""
+    best_value = -Inf
+    for depth in initial_depth:depth_step:initial_state.seconds_remaining
+        try
+            empty!(state_values)
+            seconds_cutoff = initial_state.seconds_remaining - depth
+            search_output = state_value_calc_LDFS(initial_state, seconds_cutoff, true, best_move)
+            best_value = search_output[1]
+            best_move = search_output[2]
+            println("\nSearch depth: $depth")
+            println("Best move: $best_move")
+            println("States stored: $(length(state_values))\n")
+        catch e
+            if isa(e, InterruptException)
+                println("We found our interrupt exception")
+                println("Our best move is: $best_move")
+            end
+            rethrow()
         end
-        rethrow()
     end
 end
 
@@ -131,11 +145,11 @@ function run_with_timeout(func::Function, timeout_seconds::Int, test_state::Stat
     return
 end
 
-function improved_run_with_timeout(func::Function, timeout_seconds::Int, state::State, serach_depth::Int)
+function improved_run_with_timeout(func::Function, timeout_seconds::Int, state::State, initial_depth::Int, depth_step::Int)
     @sync begin
         task = @async begin
             try
-                func(state)
+                func(state, initial_depth, depth_step)
             catch e
                 println("Task interrupted or an error occurred: $e")
             finally
@@ -152,18 +166,6 @@ end
 interpolated_value_calls = 0
 state_value_calc_calls = 0
 
-state_values = Dict{State,Tuple{Float64,String}}()
-for depth in 1:test_state.seconds_remaining
-    @time begin
-        println("\n\nDepth: $(depth)")
-        interpolated_value_calls = 0
-        state_value_calc_calls = 0
-        empty!(state_values)
-        solved_test_case = solve_LDFS(test_state, depth)
-        println("States stored: $(length(state_values))")
-        println("Interpolated states: $(interpolated_value_calls)")
-        println("Function calls: $(state_value_calc_calls)")
-        println("Optimal action: $(solved_test_case[2])")
-        println("Action value: $(solved_test_case[1])")
-    end
-end
+state_values = Dict{State, Tuple{Float64, String}}()
+
+improved_run_with_timeout(solve_LDFS, 180, test_state, 2, 2)

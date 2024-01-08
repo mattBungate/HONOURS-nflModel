@@ -7,7 +7,8 @@ state: State space currently occupied.
 function state_value_calc_LDFS(
     state::State,
     seconds_cutoff::Int, 
-    is_root::Bool
+    is_root::Bool,
+    best_move::String
 )
     yield()
     global state_value_calc_calls
@@ -48,12 +49,7 @@ function state_value_calc_LDFS(
     # Initialise arrays to store action space and associated values
     action_values = Dict{String,Float64}()
 
-    # Order the actions TODO: order in a more efficient
-    if state.score_diff > 0
-        action_space_ordered = action_space
-    else
-        action_space_ordered = reverse(action_space)
-    end
+    action_space_ordered = order_actions(state, best_move)
 
     optimal_value::Union{Nothing,Float64} = nothing
 

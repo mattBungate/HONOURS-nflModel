@@ -24,7 +24,7 @@ function delayed_timeout_value_calc(
         current_state.first_down_dist,
         false
     )
-    delayed_timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+    delayed_timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
     return delayed_timeout_val
 end
 
@@ -46,6 +46,6 @@ function immediate_timeout_value_calc(
         current_state.first_down_dist,
         false
     )
-    timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+    timeout_val = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
     return timeout_val
 end

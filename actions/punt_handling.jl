@@ -58,7 +58,7 @@ function punt_value_calc(
             FIRST_DOWN_TO_GO,
             false
         )
-        punt_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        punt_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
         if current_state.seconds_remaining <= seconds
             best_case_state_value += best_case_end_game_prob * punt_time_value
             break
@@ -115,7 +115,7 @@ function punt_value_calc(
                         FIRST_DOWN_TO_GO,
                         false, # Clock ticking handling. Need data
                     )
-                    punt_time_value = state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                    punt_time_value = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
                     if current_state.seconds_remaining <= seconds
                         punt_val += end_section_prob * game_end_duration_prob * punt_time_value
                         prob_remaining -= end_section_prob * game_end_duration_prob
@@ -165,7 +165,7 @@ function punt_value_calc(
                         FIRST_DOWN_TO_GO,
                         false
                     )
-                    punt_time_val = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+                    punt_time_val = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
                     if current_state.seconds_remaining <= seconds
                         punt_val += end_section_prob * game_end_duration_prob * punt_time_val
                         prob_remaining -= end_section_prob * game_end_duration_prob

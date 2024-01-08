@@ -50,7 +50,7 @@ function field_goal_value_calc(
             FIRST_DOWN_TO_GO,
             false
         )
-        field_goal_time_value_made = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        field_goal_time_value_made = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
         if seconds == current_state.seconds_remaining
             made_field_goal_value += game_end_time_prob * field_goal_time_value_made
             break
@@ -90,7 +90,7 @@ function field_goal_value_calc(
                 FIRST_DOWN_TO_GO,
                 false
             )
-            field_goal_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+            field_goal_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
             if seconds == current_state.seconds_remaining
                 field_goal_value += (1 - field_goal_prob) * game_end_time_prob * field_goal_time_value
                 break
@@ -107,7 +107,7 @@ function field_goal_value_calc(
                 FIRST_DOWN_TO_GO,
                 false
             )
-            field_goal_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+            field_goal_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
             if seconds == current_state.seconds_remaining
                 field_goal_value += (1 - field_goal_prob) * game_end_time_prob * field_goal_time_value
                 break

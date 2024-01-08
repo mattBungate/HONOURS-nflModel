@@ -19,6 +19,6 @@ function kneel_value_calc(
             current_state.first_down_dist,
             true
         )
-        return state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        return state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
     end
 end

@@ -29,7 +29,7 @@ const MAX_PLAY_CLOCK_DURATION = 40                          # Time elapsed when 
 const FIELD_GOAL_CUTOFF = 50                                # Max distance a team will attempt a field goal from
 
 const MIN_PLAY_LENGTH = 1                                   # Minimum duration of a play
-const MAX_PLAY_LENGTH = 25                                  # Maximum duration of a play TODO: Fix this. this includes game clock. Need stats on how long the play is not just between each play
+const MAX_PLAY_LENGTH = 11                                  # Maximum duration of a play TODO: Fix this. this includes game clock. Need stats on how long the play is not just between each play
 
 const MIN_FIELD_GOAL_DURATION = 1                           # Minimum duration of a field goal
 const MAX_FIELD_GOAL_DURATION = 14                          # Maximum duration of a field goal
