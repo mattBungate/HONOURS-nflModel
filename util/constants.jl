@@ -2,7 +2,7 @@
 All the constants that are used throughout this codebase
 """
 
-const VERSION_NUM = "V_4_0_0"
+const VERSION_NUM = "V_4_0_1"
 
 const action_space = [
     "Kneel", 
@@ -23,6 +23,16 @@ const action_children_functions = Dict{String,Function}(
     "Hurried Play" => hurried_play_children,
     "Delayed Play" => delayed_play_children,
     "Spike" => spike_children
+)
+const select_action_child_functions = Dict{String, Function}(
+    "Kneel" => select_kneel_child,
+    "Timeout" => select_immediate_timeout_child,
+    "Delayed Timeout" => select_delayed_timeout_child,
+    "Field Goal" => select_field_goal_child,
+    "Punt" => select_punt_child,
+    "Hurried Play" => select_hurried_play_child,
+    "Delayed Play" => select_delayed_play_child,
+    "Spike" => select_spike_child
 )
 
 const SECTION_WIDTH = 1                                     # Width of the sections
@@ -50,7 +60,7 @@ const MAX_PLAY_CLOCK_DURATION = 40                          # Time elapsed when 
 const FIELD_GOAL_CUTOFF = 50                                # Max distance a team will attempt a field goal from
 
 const MIN_PLAY_LENGTH = 1                                   # Minimum duration of a play
-const MAX_PLAY_LENGTH = 25                                  # Maximum duration of a play TODO: Fix this. this includes game clock. Need stats on how long the play is not just between each play
+const MAX_PLAY_LENGTH = 11                                  # Maximum duration of a play TODO: Fix this. this includes game clock. Need stats on how long the play is not just between each play
 
 const MIN_FIELD_GOAL_DURATION = 3                           # Minimum duration of a field goal
 const MAX_FIELD_GOAL_DURATION = 9                           # Maximum duration of a field goal

@@ -84,3 +84,72 @@ function field_goal_children(
     end
     return field_goal_child_states
 end
+
+function select_field_goal_child(
+    current_state::State
+)::Union{State, Nothing}
+    # Check feasibility
+    if current_state.ball_section < FIELD_GOAL_CUTOFF
+        return nothing
+    end
+    """ Field goal random variables """
+    # --- TIME ---
+    # TODO: factor out these as constants
+    FIELD_GOAL_TIME_DIST = Normal(6, 1.5) # TODO: play with these constants
+    
+    field_goal_duration = round(rand(FIELD_GOAL_TIME_DIST))
+    if field_goal_duration < 3
+        field_goal_duration = 3 # TODO: factor out this constant
+    elseif field_goal_duration > 9
+        field_goal_duration = 9 # TODO: factor out this constant
+    end
+
+    # --- Making Field Goal ---
+    field_goal_made_rand_val = rand() # Number between 0  and 1
+    # Get field goal prob
+    ball_section_10_yard = Int(ceil(current_state.ball_section / 10))
+    col_name = Symbol("T-$(ball_section_10_yard)")
+    field_goal_prob = field_goal_df[1, col_name]
+
+    """ Return outcome state """ 
+    if field_goal_made_rand_val < field_goal_prob
+        # Made the field goal
+        return (State(
+            current_state.seconds_remaining - field_goal_duration,
+            -(current_state.score_diff + FIELD_GOAL_SCORE),
+            reverse(current_state.timeouts_remaining),
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false
+        ),
+        true)
+    else
+        # Missed field goal
+        if current_state.ball_section < FIELD_GOAL_MERCY_SECTION
+            # Behind the mercy section
+            return (State(
+                current_state.seconds_remaining - field_goal_duation,
+                -current_state.score_diff,
+                reverse(current_state.timeouts_remaining),
+                flip_field(current_state.ball_section),
+                FIRST_DOWN,
+                FIRST_DOWN_TO_GO,
+                false
+            ),
+            true)
+        else
+            # In front of the mercy section
+            return (State(
+                current_state.seconds_remaining - field_goal_duration,
+                -current_state.score_diff,
+                reverse(current_state.timeouts_remaining),
+                TOUCHBACK_SECTION,
+                FIRST_DOWN,
+                FIRST_DOWN_TO_GO,
+                false
+            ),
+            true)
+        end
+    end
+end

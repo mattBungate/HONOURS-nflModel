@@ -172,3 +172,104 @@ function play_children(
     end
     return play_children_states
 end
+
+function select_hurried_play_child(
+    current_state::State
+)::Union{State, Nothing}
+    return select_play_child(current_state, 0)
+end
+
+function select_delayed_play_child(
+    current_state::State
+)::Union{State, Bool} 
+    return select_play_child(current_state, 1)
+end
+
+function select_play_child(
+    current_state::State,
+    delayed::Int
+)::State
+    """ Random Variables """
+    
+    # Time - TODO: I think this data already exists (used to create time_df, play_df)
+    const PLAY_DURATION_DIST = Normal(8, 2.5) # TODO: factor out time duraiton Distribution
+    play_duration = round(rand(PLAY_DURATION_DIST))
+    if play_duration < 1
+        play_duration = 1
+    elseif play_duration > 11
+        play_duration = 11
+    end
+    time_remaining = max(current_state.seconds_remaining - delayed*MAX_PLAY_CLOCK_DURATION, 0)
+    # Ball position
+    const YARDS_GAINED_DIST = Normal(4, 10) # TODO: Fine tune numbers (or get from data processing)
+    yards_gained = round(rand(YARDS_GAINED_DIST))
+    new_ball_position = current_state.ball_section + yards_gained
+    # Clock ticking
+    clock_ticking_random_var = rand()
+    clock_ticking_random_val = (clock_ticking_random_var > 0.5)
+
+    """ Selecting """
+    if new_ball_position <= TOUCHDOWN_CONCEEDED_SECTION
+        # Conceeded pick-six
+        return (State(
+            time_remaining,
+            current_state.score_diff - TOUCHDOWN_SCORE,
+            current_state.timeouts_remaining,
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false
+        ),
+        false)
+    elseif new_ball_position >= TOUCHDOWN_SECTION
+        # Scoring play
+        return (State(
+            time_remaining,
+            -(current_state.score_diff + TOUCHDOWN_SCORE),
+            reverse(current_state.timeouts_remaining),
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false
+        ), true)
+    else
+        # Non-scoring play
+        if new_ball_position > current_state.ball_section + current_state.first_down_dist
+            # Fresh set of downs
+            return (State(
+                time_remaining,
+                current_state.score_diff,
+                current_state.timeouts_remaining,
+                new_ball_position,
+                FIRST_DOWN,
+                FIRST_DOWN_TO_GO,
+                clock_ticking_random_val
+            ), false)
+        else
+            # Short of first down
+            if current_state.down == 4
+                # Turnover
+                return (State(
+                    time_remaining,
+                    -current_state.score_diff,
+                    reverse(current_state.timeouts_remaining),
+                    flip_field(new_ball_position),
+                    FIRST_DOWN,
+                    FIRST_DOWN_TO_GO,
+                    false # Assume clock stops on turnover
+                ), true)
+            else
+                # Next down
+                return (State(
+                    time_remaining,
+                    current_state.score_diff,
+                    current_state.timeouts_remaining,
+                    new_ball_position,
+                    current_state.down + 1,
+                    current_state.ball_section + current_state.first_down_dist - new_ball_position,
+                    clock_ticking_random_val
+                ), false)
+            end
+        end
+    end
+end
