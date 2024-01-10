@@ -3,34 +3,36 @@ using CSV
 using Distributions
 
 include("util/state.jl")
-include("util/constants.jl")
-include("util/util.jl")
 include("actions/punt_handling.jl")
 include("actions/field_goal_handling.jl")
 include("actions/play_handling.jl")
 include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
 include("actions/timeout_handling.jl")
+include("util/constants.jl")
+include("util/util.jl")
 include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
 include("interpolation.jl")
 include("evaluate_game.jl")
 
-function solve_LDFS(
-    initial_state::State,
-    depth::Int
+"""
+function solve_MCTS(
+    initial_state::State
 )
-    try
-        seconds_cutoff = initial_state.seconds_remaining - depth
-        return state_value_calc_LDFS(initial_state, seconds_cutoff, true)
-    catch e
-        if isa(e, InterruptException)
-        end
-        rethrow()
+    while true
+        try 
+            # 1. Selection (using formula)
+            # 2. Expansion (Randomly choose an outcome from outcome space. If already explored continue)
+            # 3. Simulation (Create node for new state. Randomly choose action. Randomly choose outcome from each action. Additionally can "inform" the play)
+            # 4. Backpropogation (Iterate through all parent nodes recursively, incrementing total score and times visited)
+        catch e
+            if isa(e, InterruptException)
+                # Sort through all the actions and see what is the best action
     end
 end
-
+"""
 
 global state_value_calc_calls = 0
 global interpolated_value_calls = 0
@@ -85,53 +87,11 @@ for section in NON_SCORING_FIELD_SECTIONS
     end
 end
 
-const INTERPOLATE_POSITION = true
-const INTERPOLATE_FIRST_DOWN = true
 
-action_space = ["Kneel", "Punt", "Delayed Play", "Delayed Timeout", "Field Goal", "Timeout", "Hurried Play", "Spike"]
-action_functions = Dict{String,Function}(
-    "Kneel" => kneel_value_calc,
-    "Timeout" => immediate_timeout_value_calc,
-    "Delayed Timeout" => delayed_timeout_value_calc,
-    "Field Goal" => field_goal_value_calc,
-    "Punt" => punt_value_calc,
-    "Hurried Play" => hurried_play_action_calc,
-    "Delayed Play" => delayed_play_action_calc,
-    "Spike" => spike_value_calc
-)
 
-const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
-
-# Order from easiest to hardest: 4, 8, 11, 10, 6, 7
-test_case = REAL_TESTS[4]
-test_state = test_case[1]
-test_action = test_case[2]
-#println(REAL_TEST_DESCRIPTION[11])
-dummy_test_state = State(
-    5,
-    test_state.score_diff,
-    test_state.timeouts_remaining,
-    test_state.ball_section,
-    test_state.down,
-    test_state.first_down_dist,
-    test_state.clock_ticking
-)
-
-const starting_score_diff = test_state.score_diff
-const SCORE_BOUND = 14
-
-println("Testing: $test_state")
-function run_with_timeout(func::Function, timeout_seconds::Int, test_state::State)
-    @sync begin
-        task = @async func(test_state)
-        sleep(timeout_seconds)
-        Base.throwto(task, InterruptException())
-        return
-    end
-    return
-end
-
-function improved_run_with_timeout(func::Function, timeout_seconds::Int, state::State, serach_depth::Int)
+function run_with_timeout(
+    func::Function, 
+    state::State)
     @sync begin
         task = @async begin
             try
@@ -149,21 +109,27 @@ function improved_run_with_timeout(func::Function, timeout_seconds::Int, state::
     println("Exiting improved_run_with_timeout")
 end
 
-interpolated_value_calls = 0
-state_value_calc_calls = 0
 
-state_values = Dict{State,Tuple{Float64,String}}()
-for depth in 1:test_state.seconds_remaining
-    @time begin
-        println("\n\nDepth: $(depth)")
-        interpolated_value_calls = 0
-        state_value_calc_calls = 0
-        empty!(state_values)
-        solved_test_case = solve_LDFS(test_state, depth)
-        println("States stored: $(length(state_values))")
-        println("Interpolated states: $(interpolated_value_calls)")
-        println("Function calls: $(state_value_calc_calls)")
-        println("Optimal action: $(solved_test_case[2])")
-        println("Action value: $(solved_test_case[1])")
-    end
-end
+const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
+
+# Order from easiest to hardest: 4, 8, 11, 10, 6, 7
+test_case = REAL_TESTS[4]
+test_state = test_case[1]
+test_action = test_case[2]
+#println(REAL_TEST_DESCRIPTION[11])
+dummy_test_state = State(
+    test_state.seconds_remaining,
+    test_state.score_diff,
+    (0, 3),
+    60,
+    4,
+    test_state.first_down_dist,
+    test_state.clock_ticking
+)
+
+const starting_score_diff = test_state.score_diff
+const SCORE_BOUND = 14
+
+println("Testing: $dummy_test_state")
+delayed_states = delayed_play_children(dummy_test_state)
+println("Number of children for delayed play: $(length(delayed_states))")

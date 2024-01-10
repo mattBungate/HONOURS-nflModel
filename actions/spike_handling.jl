@@ -1,23 +1,24 @@
 """
-Handle action Spike
+Return all children states given spike action is taken
 """
-function spike_value_calc(
+function spike_children(
     current_state::State,
-    optimal_value::Union{Nothing,Float64},
-    seconds_cutoff::Int
-)
-    if current_state.down == 4 # Will not spike on 4th down
-        return nothing
+)::Vector{State}
+    # Check if spike is feasible
+    if current_state.down == 4 || !current_state.clock_ticking
+        return []
     else
-        next_state = State(
-            current_state.seconds_remaining - 1,
-            current_state.score_diff,
-            current_state.timeouts_remaining,
-            current_state.ball_section,
-            current_state.down + 1,
-            current_state.first_down_dist,
-            false
-        )
-        return state_value_calc_LDFS(next_state, seconds_cutoff, false)[1]
+        # TODO: Better stats for time runoff when playing a spike. Cannot spike instantly
+        return [
+            State(
+                current_state.seconds_remaining,
+                current_state.score_diff,
+                current_state.timeouts_remaining,
+                current_state.ball_section,
+                current_state.down + 1,
+                current_state.first_down_dist,
+                false
+            )
+        ]
     end
 end

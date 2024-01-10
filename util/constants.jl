@@ -2,7 +2,28 @@
 All the constants that are used throughout this codebase
 """
 
-const VERSION_NUM = "V_2_4_2"
+const VERSION_NUM = "V_4_0_0"
+
+const action_space = [
+    "Kneel", 
+    "Punt", 
+    "Delayed Play", 
+    "Delayed Timeout", 
+    "Field Goal", 
+    "Timeout", 
+    "Hurried Play", 
+    "Spike"
+]
+const action_children_functions = Dict{String,Function}(
+    "Kneel" => kneel_children,
+    "Timeout" => immediate_timeout_children,
+    "Delayed Timeout" => delayed_timeout_children,
+    "Field Goal" => field_goal_children,
+    "Punt" => punt_children,
+    "Hurried Play" => hurried_play_children,
+    "Delayed Play" => delayed_play_children,
+    "Spike" => spike_children
+)
 
 const SECTION_WIDTH = 1                                     # Width of the sections
 
@@ -11,7 +32,7 @@ const NON_SCORING_FIELD_SECTIONS = [i for i in 1:99]        # Field sections tha
 const TOUCHBACK_SECTION = 25                                # Touchback is 25yrd line (section 3)
 const TOUCHDOWN_SECTION = 100                               # Scoring touchdown section
 const TOUCHDOWN_CONCEEDED_SECTION = 0                       # Conceeding touchdown section
-const FIELD_GOAL_MERCY_SECTION = 20                         # If a field goal inside this the ball is placed on the 25
+const FIELD_GOAL_MERCY_SECTION = 80                         # If a field goal inside this the ball is placed on the 25
 
 const POSSIBLE_DOWNS = [1, 2, 3, 4]                         # All downs possible
 
@@ -31,8 +52,8 @@ const FIELD_GOAL_CUTOFF = 50                                # Max distance a tea
 const MIN_PLAY_LENGTH = 1                                   # Minimum duration of a play
 const MAX_PLAY_LENGTH = 25                                  # Maximum duration of a play TODO: Fix this. this includes game clock. Need stats on how long the play is not just between each play
 
-const MIN_FIELD_GOAL_DURATION = 1                           # Minimum duration of a field goal
-const MAX_FIELD_GOAL_DURATION = 14                          # Maximum duration of a field goal
+const MIN_FIELD_GOAL_DURATION = 3                           # Minimum duration of a field goal
+const MAX_FIELD_GOAL_DURATION = 9                           # Maximum duration of a field goal
 
 const MIN_PUNT_DURATION = 3                                 # Minimum duration of a punt
 const MAX_PUNT_DURATION = 22                                # Maximum duraiton of a punt
