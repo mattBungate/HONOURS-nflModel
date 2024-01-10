@@ -51,7 +51,7 @@ function select_punt_child(
 )::State
     """ Random variables """
     # Time
-    const PUNT_DURATION_DIST = Normal(13, 2.5) # TODO: Change μ & σ. Just did play duration with μ+5
+    PUNT_DURATION_DIST = Normal(13, 2.5) # TODO: Change μ & σ. Just did play duration with μ+5
     punt_duration = round(rand(PUNT_DURATION_DIST))
     if punt_duration < 6
         punt_duration = 6
@@ -60,7 +60,7 @@ function select_punt_child(
     end
     time_remaining = max(current_state.seconds_remaining - punt_duration, 0)
     # Ball Position
-    const PUNT_BALL_POSITION_DIST = Normal(45-13, 10) # TODO: Change μ & σ. μ found from average punt - average return
+    PUNT_BALL_POSITION_DIST = Normal(45-13, 10) # TODO: Change μ & σ. μ found from average punt - average return
     punt_return_position = round(rand(PUNT_BALL_POSITION_DIST))
     # Clock ticking
     clock_ticking_random_var = (rand() > 0.5) # 50/50 clock ticking or stopped

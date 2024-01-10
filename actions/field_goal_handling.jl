@@ -87,7 +87,7 @@ end
 
 function select_field_goal_child(
     current_state::State
-)::State
+)::Tuple{State, Bool}
     """ Field goal random variables """
     # --- TIME ---
     # TODO: factor out these as constants

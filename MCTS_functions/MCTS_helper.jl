@@ -4,7 +4,7 @@ using Random
 include("../util/state.jl")
 include("node.jl")
 
-function feasible_actions(
+function get_feasible_actions(
     state::State
 )::Vector{String}
     feasible_actions = []
@@ -12,9 +12,11 @@ function feasible_actions(
         push!(feasible_actions, "Field Goal")
     end
     if state.down != 4
-        push!(feasible_actions, "Kneel")
-        push!(feasible_actions, "Spike")
-    elseif state.ball_section < TOUCHBACK_SECTION
+        if state.clock_ticking
+            push!(feasible_actions, "Kneel")
+            push!(feasible_actions, "Spike")
+        end
+    elseif state.ball_section < flip_field(TOUCHBACK_SECTION)
         push!(feasible_actions, "Punt")
     end
     if state.timeouts_remaining[1] > 0 && state.clock_ticking
@@ -43,13 +45,17 @@ end
 function select_action(
     node::Node
 )::String
-    feasible_actions = feasible_actions(node.state)
+    feasible_actions = get_feasible_actions(node.state)
+    println("Node state: $(node.state)")
+    println("Feasible actions: $feasible_actions")
+    println("Action stats: $(node.action_stats)")
 
     best_action_score = -Inf
     best_action = ""
     for action in feasible_actions
         # Check action that has not been explored before
-        if length(node.action_stats[action]) == 0
+        println("Checking Node for actions stats for action $action")
+        if node.action_stats[action][2] == 0
             return action
         end
         # Otherwise use formula
@@ -70,28 +76,32 @@ end
 
 function selection(
     root::Node
-)::Tuple{State, Node}
+)::Tuple{State, Node, Bool}
     # Create node variable
     node = root
     while true
+        println("\next iteration")
         # Check if game over (no children then)
         if node.state.seconds_remaining <= 0
-            return (state, node) # TODO: Make sure this is handled appropriately
+            println("Hit end of game")
+            return (state, node, false) # TODO: Make sure this is handled appropriately
         end
 
         # Select the action (using formula)
         action = select_action(node)
+        println("Selected action: $action")
 
         # Randomly select state from the outcome space of that action
-        random_state_tuple = random_state(state, action)
+        random_state_tuple = random_state(node.state, action)
         state = random_state_tuple[1]
+        println("Random outcome state: $state")
         state_change_possesion = random_state_tuple[2]
 
         # Look for node in tree
         state_node = find_node(root, state)
         if state_node === nothing
             # Retrun the leaf node and state of unexplored node
-            return (state, state_node) 
+            return (state, node, state_change_possesion) 
         else
             # Update 
             parent_found = false
@@ -116,14 +126,10 @@ function expansion(
     leaf_node::Node,
     parent_change_possesion::Bool
 )::Node
-    new_node = Node(
-        new_state, 
-        0,
-        0, 
-        [leaf_node],
-        [parent_change_possesion],
-        Dict{String, Tuple{Int, Int}}(),
-        Dict{String, Node}()
+    new_node = create_node(
+        leaf_node,
+        parent_change_possession,
+        new_state
     )
     push!(leaf_node.visited_children[action], new_node)
     return new_node
@@ -141,7 +147,7 @@ function simulation(
     if current_state.seconds_remaining <= 0
         return evaluate_game(leaf_node.state)
     else
-        feasible_actions = feasible_actions(current_state)
+        feasible_actions = get_feasible_actions(current_state)
         random_action = rand(feasible_actions)
         random_state_tuple = random_state(current_state, random_action)
         if random_state_tuple[2]
@@ -155,15 +161,51 @@ end
 
 function backpropogation(
     simulation_result::Int,
-
+    changed_possesion::Bool,
     node::Node
-) # IDK what this is going to return yet
+) # VOID FUNCTION
+
+    """ Update node stats """
+    node.times_visited += 1
+    if changed_possesion
+        node.total_score -= simulation_result
+    else
+        node.total_score += simulation_result
+    end
+
+    """ Check for root node / initial state """
     if length(node.parents) == 0
-        # We ahve reached the root node/initial state
         return
     end
-    node.times_visited += 1
-    
+
+    """ Update action stats of parent node """
+    # Iterate through all parents
+    for parent_index in 1:length(node.parents)
+        # Iterate through all action of parents
+        for (action, child_nodes) in node.parents[parent_index].visited_children
+            # Look for this node in the children for each action
+            if in(node, child_nodes)
+                # Increment the times visited for action
+                node.parents[parent_index].action_stats[action][2] += 1
+                # Increment
+                if node.parent_change_possesion[parent_index]
+                    parent_change_possesion = !changed_possesion
+                else
+                    parent_change_possesion = changed_possesion
+                end
+                if parent_change_possession
+                    node.parents[parent_index].action_stats[action][1] -= simulation_result
+                else
+                    node.parents[parent_index].action_stats[action][2] += simulation_result
+                end
+                backpropogation(
+                    simulation_result, 
+                    parent_change_possesion,
+                    node.parents[parent_index]
+                )
+            end 
+        end
+    end
 end
 
 """
@@ -183,10 +225,12 @@ function find_node(
         return nothing
     end 
 
-    for child in values(node.visited_children)
-        child_result = find_node(child, target_state)
-        if child_result !== nothing
-            return child_result
+    for action_nodes in values(node.visited_children)
+        for child in action_nodes
+            child_result = find_node(child, target_state)
+            if child_result !== nothing
+                return child_result
+            end
         end
     end
     # Node not found
@@ -195,78 +239,3 @@ end
 
 
 
-function test_find_node()
-    total_tests = 0
-    passed_tests = 0
-    """ Initialise Tree """
-    # Set up root node
-    dummy_root_state = State(2, 1, (1,1), 1, 1, 1, true)
-    dummy_root = Node(dummy_root_state, 0, 0, Vector{Node}(), Vector{Bool}(), Dict{String, Tuple{Int, Int}}(), Dict{String, Node}())
-    # Set up children
-    dummy_child_state_one = State(1, 1, (0,1), 1, 1, 1, true)
-    dummy_child_one = Node(dummy_child_state_one, 0, 0, [dummy_root], [false], Dict{String, Tuple{Int, Int}}(), Dict{String, Node}())
-    dummy_child_state_two = State(1, 1, (1,0), 1, 1, 1, true)
-    dummy_child_two = Node(dummy_child_state_two, 0, 0, [dummy_root], [false], Dict{String, Tuple{Int, Int}}(), Dict{String, Node}())
-    dummy_child_state_three = State(1, 1, (0,0), 1, 1, 1, true)
-    dummy_child_three = Node(dummy_child_state_three, 0, 0, [dummy_root], [false], Dict{String, Tuple{Int, Int}}(), Dict{String, Node}())
-    dummy_child_state_four = State(0, 1, (0,0), 1, 1, 1, true)
-    dummy_child_four = Node(dummy_child_state_four, 0, 0, [dummy_child_three], [false], Dict{String, Tuple{Int, Int}}(), Dict{String, Node}())
-
-    visited_children = Dict{String, Node}(
-        "one" => dummy_child_one,
-        "two" => dummy_child_two,
-        "three" => dummy_child_three
-    )
-    dummy_root.visited_children = visited_children
-
-    dummy_child_three.visited_children = Dict{String, Node}("one" => dummy_child_four)
-
-    # Unknown state
-    dummy_unknown_state = State(0, 0, (0, 0), 1, 1, 1, false)
-
-    """ TESTS """
-    # Find first child
-    child_one_result = find_node(dummy_root, dummy_child_state_one)
-    if child_one_result === nothing
-        println("Error: Child 1 not found")
-    else
-        passed_tests += 1
-    end
-    total_tests += 1
-    # Find second child
-    child_two_result = find_node(dummy_root, dummy_child_state_two)
-    if child_two_result === nothing
-        println("Error: Child 2 not found")
-    else
-        passed_tests += 1
-    end
-    total_tests += 1
-    # Find third child
-    child_third_result = find_node(dummy_root, dummy_child_state_three)
-    if child_third_result === nothing
-        println("Error: Child 3 not found")
-    else
-        passed_tests += 1
-    end
-    total_tests += 1
-    # Find fourth child
-    child_four_result = find_node(dummy_root, dummy_child_state_four)
-    if child_four_result === nothing
-        println("Error: Child 4 not found")
-    else
-        passed_tests += 1
-    end
-    total_tests += 1
-    # Search for state not in tree
-    unknown_state_result = find_node(dummy_root, dummy_unknown_state)
-    if unknown_state_result !== nothing
-        println("Error: Found a node for a state not in the tree")
-    else
-        passed_tests += 1
-    end
-    total_tests += 1
-    """ Print summary """
-    println("Test pass rate: ($passed_tests / $total_tests)")
-end
-
-test_find_node()

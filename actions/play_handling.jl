@@ -191,7 +191,7 @@ function select_play_child(
 )::State
     """ Random Variables """
     # Time - TODO: I think this data already exists (used to create time_df, play_df)
-    const PLAY_DURATION_DIST = Normal(8, 2.5) # TODO: factor out time duraiton Distribution
+    PLAY_DURATION_DIST = Normal(8, 2.5) # TODO: factor out time duraiton Distribution
     play_duration = round(rand(PLAY_DURATION_DIST))
     if play_duration < 1
         play_duration = 1
@@ -200,7 +200,7 @@ function select_play_child(
     end
     time_remaining = max(current_state.seconds_remaining - delayed*MAX_PLAY_CLOCK_DURATION, 0)
     # Ball position
-    const YARDS_GAINED_DIST = Normal(4, 10) # TODO: Fine tune numbers (or get from data processing)
+    YARDS_GAINED_DIST = Normal(4, 10) # TODO: Fine tune numbers (or get from data processing)
     yards_gained = round(rand(YARDS_GAINED_DIST))
     new_ball_position = current_state.ball_section + yards_gained
     # Clock ticking
