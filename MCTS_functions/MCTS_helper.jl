@@ -42,7 +42,7 @@ function select_action(
     node::Node
 )::String
     feasible_actions = feasible_actions(node.state)
-    
+
     best_action_score = -Inf
     best_action = ""
     for action in feasible_actions
@@ -67,21 +67,32 @@ function random_state(
 end
 
 function selection(
-    node::Node
-)::Node
-    # TODO: Look at doing feasibility before trying to calcualte
-    
+    root::Node
+)::Tuple{State, Node}
+    # Create node variable
+    node = root
     while true
+        # Check if game over (no children then)
+        if node.state.seconds_remaining <= 0
+            return (state, node) # TODO: Make sure this is handled appropriately
+        end
+
         # Select the action (using formula)
         action = select_action(node)
 
-        # Generate outcome space of that state given the action
-        #outcome_space = action_children_functions[action](node.state) # Is this necessary?
-
         # Randomly select state from the outcome space of that action
-        state = random_state(state, action) 
-    end
+        state = random_state(state, action)
 
+        # Look for node in tree
+        state_node = find_node(root, state)
+        if state_node === nothing
+            # Retrun the leaf node and state of unexplored node
+            return (state, state_node) 
+        else
+            # Repeat with process with already explored node
+            node = state_node
+        end 
+    end
 end
 
 """
