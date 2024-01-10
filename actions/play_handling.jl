@@ -175,13 +175,13 @@ end
 
 function select_hurried_play_child(
     current_state::State
-)::Union{State, Nothing}
+)::State
     return select_play_child(current_state, 0)
 end
 
 function select_delayed_play_child(
     current_state::State
-)::Union{State, Bool} 
+)::State
     return select_play_child(current_state, 1)
 end
 
@@ -190,7 +190,6 @@ function select_play_child(
     delayed::Int
 )::State
     """ Random Variables """
-    
     # Time - TODO: I think this data already exists (used to create time_df, play_df)
     const PLAY_DURATION_DIST = Normal(8, 2.5) # TODO: factor out time duraiton Distribution
     play_duration = round(rand(PLAY_DURATION_DIST))

@@ -2,6 +2,33 @@ using Distributions
 include("../util/state.jl")
 include("node.jl")
 
+function feasible_actions(
+    state::State
+)::Vector{String}
+    feasible_actions = []
+    if state.ball_section > FIELD_GOAL_CUTOFF
+        push!(feasible_actions, "Field Goal")
+    end
+    if state.down != 4
+        push!(feasible_actions, "Kneel")
+        push!(feasible_actions, "Spike")
+    elseif state.ball_section < TOUCHBACK_SECTION
+        push!(feasible_actions, "Punt")
+    end
+    if state.timeouts_remaining[1] > 0 && state.clock_ticking
+        push!(feasible_actions, "Timeout")
+        if state.seconds_remaining > 1
+            push!(feasible_actions, "Delayed Timeout")
+        end
+    end
+    push!(feasible_actions, "Hurried Play")
+    if state.seconds_remaining > 1
+        push!(feasible_actions, "Delayed Play")
+    end
+    
+    return feasible_actions
+end
+
 function UCB(
     total_score::Int,
     action_visits::Int,
@@ -14,10 +41,11 @@ end
 function select_action(
     node::Node
 )::String
-
+    feasible_actions = feasible_actions(node.state)
+    
     best_action_score = -Inf
     best_action = ""
-    for action in action_space
+    for action in feasible_actions
         # Check action that has not been explored before
         if length(node.action_stats[action]) == 0
             return action

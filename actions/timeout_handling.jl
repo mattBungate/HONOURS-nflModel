@@ -46,38 +46,28 @@ end
 
 function select_immediate_timeout_child(
     current_state::State
-)::Union{State, Nothing}
-    # Check if feasible
-    if current_state.timeouts_remaining[1] == 0 || !current_state.clock_ticking
-        return nothing
-    else
-        return State(
-            current_state.seconds_remaining,
-            current_state.score_diff,
-            (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
-            current_state.ball_section,
-            current_state.down,
-            current_state.first_down_dist,
-            false
-        )
-    end
+)::State
+    return State(
+        current_state.seconds_remaining,
+        current_state.score_diff,
+        (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
+        current_state.ball_section,
+        current_state.down,
+        current_state.first_down_dist,
+        false
+    )
 end
 
 function select_delayed_timeout_child(
     current_state::State
-)::Union{State, Nothing}
-    # CHeck feasibility
-    if current_state.timeouts_remaining[1] == 0 || !current_State.clock_ticking || current_state.seconds_remaining == 1
-        return nothing
-    else
-        return State(
-            max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 1),
-            current_state.score_diff,
-            (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
-            current_state.ball_section,
-            current_state.down,
-            current_state.first_down_dist,
-            false
-        )
-    end
+)::State
+    return State(
+        max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 1),
+        current_state.score_diff,
+        (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
+        current_state.ball_section,
+        current_state.down,
+        current_state.first_down_dist,
+        false
+    )
 end

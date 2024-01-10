@@ -48,11 +48,7 @@ end
 
 function select_punt_child(
     current_state::State
-)::Union{State, Nothing}
-    # Check feasibility
-    if current_state.down != 4 || current_state.ball_section > FIELD_GOAL_MERCY_SECTION
-        return nothing
-    end
+)::State
     """ Random variables """
     # Time
     const PUNT_DURATION_DIST = Normal(13, 2.5) # TODO: Change μ & σ. Just did play duration with μ+5

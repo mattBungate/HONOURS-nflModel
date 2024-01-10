@@ -2,7 +2,7 @@
 All the constants that are used throughout this codebase
 """
 
-const VERSION_NUM = "V_4_0_1"
+const VERSION_NUM = "V_4_0_2"
 
 const action_space = [
     "Kneel", 

@@ -24,18 +24,14 @@ end
 
 function select_kneel_child(
     current_state::State
-)::Union{Nothing, State}
-    if current_state.down == 4
-        return nothing
-    else
-        return State(
-            max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 0),
-            current_state.score_diff,
-            current_state.timeouts_remaining,
-            current_state.ball_section,
-            current_state.down + 1,
-            current_state.first_down_dist,
-            false
-        )
-    end
+)::State
+    return State(
+        max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 0),
+        current_state.score_diff,
+        current_state.timeouts_remaining,
+        current_state.ball_section,
+        current_state.down + 1,
+        current_state.first_down_dist,
+        false
+    )
 end

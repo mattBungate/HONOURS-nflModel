@@ -87,11 +87,7 @@ end
 
 function select_field_goal_child(
     current_state::State
-)::Union{State, Nothing}
-    # Check feasibility
-    if current_state.ball_section < FIELD_GOAL_CUTOFF
-        return nothing
-    end
+)::State
     """ Field goal random variables """
     # --- TIME ---
     # TODO: factor out these as constants
