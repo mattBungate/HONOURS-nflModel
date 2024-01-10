@@ -1,4 +1,6 @@
 using Distributions
+using Random
+
 include("../util/state.jl")
 include("node.jl")
 
@@ -81,7 +83,9 @@ function selection(
         action = select_action(node)
 
         # Randomly select state from the outcome space of that action
-        state = random_state(state, action)
+        random_state_tuple = random_state(state, action)
+        state = random_state_tuple[1]
+        state_change_possesion = random_state_tuple[2]
 
         # Look for node in tree
         state_node = find_node(root, state)
@@ -89,10 +93,77 @@ function selection(
             # Retrun the leaf node and state of unexplored node
             return (state, state_node) 
         else
+            # Update 
+            parent_found = false
+            for parent in child.parents
+                if node == parent
+                    parent_found = true
+                end
+            end
+            if !parent_found
+                push!(node.child.parents, node)
+                push!(node.parent_change_possesion, state_change_possesion)
+            end
             # Repeat with process with already explored node
             node = state_node
         end 
     end
+end
+# TODO: write a testing suite for the selection stage
+
+function expansion(
+    new_state::State,
+    leaf_node::Node,
+    parent_change_possesion::Bool
+)::Node
+    new_node = Node(
+        new_state, 
+        0,
+        0, 
+        [leaf_node],
+        [parent_change_possesion],
+        Dict{String, Tuple{Int, Int}}(),
+        Dict{String, Node}()
+    )
+    push!(leaf_node.visited_children[action], new_node)
+    return new_node
+end
+# TODO: write a testingsuite for the expansion stage (this should be very simple)
+
+"""
+Returns the score from the random simulation
+"""
+function simulation(
+    current_state::Node,
+    changed_possession::Bool
+)::Tuple{Int, Bool}
+    # TODO: Make this simulation more random (while still maintaining some randomness)\
+    if current_state.seconds_remaining <= 0
+        return evaluate_game(leaf_node.state)
+    else
+        feasible_actions = feasible_actions(current_state)
+        random_action = rand(feasible_actions)
+        random_state_tuple = random_state(current_state, random_action)
+        if random_state_tuple[2]
+            return simulation(random_state_tuple[1], !changed_possession)
+        else
+            return simulation(random_state_tuple[1], changed_possession)
+        end
+    end
+end
+# TODO: write a testing suite for the simulation stage 
+
+function backpropogation(
+    simulation_result::Int,
+
+    node::Node
+) # IDK what this is going to return yet
+    if length(node.parents) == 0
+        # We ahve reached the root node/initial state
+        return
+    end
+    node.times_visited += 1
+    
 end
 
 """
