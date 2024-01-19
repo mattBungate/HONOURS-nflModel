@@ -48,7 +48,7 @@ end
 
 function select_punt_child(
     current_state::State
-)::State
+)::Tuple{State, Bool}
     """ Random variables """
     # Time
     PUNT_DURATION_DIST = Normal(13, 2.5) # TODO: Change μ & σ. Just did play duration with μ+5

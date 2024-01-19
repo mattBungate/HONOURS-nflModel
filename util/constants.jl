@@ -6,7 +6,7 @@ using DataFrames
 using CSV
 using Distributions
 
-const VERSION_NUM = "V_4_0_5"
+const VERSION_NUM = "V_4_0_6"
 
 const action_space = [
     "Kneel", 
@@ -38,6 +38,8 @@ const select_action_child_functions = Dict{String, Function}(
     "Delayed Play" => select_delayed_play_child,
     "Spike" => select_spike_child
 )
+
+const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
 
 const SECTION_WIDTH = 1                                     # Width of the sections
 

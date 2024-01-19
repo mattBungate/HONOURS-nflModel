@@ -24,8 +24,8 @@ end
 
 function select_kneel_child(
     current_state::State
-)::State
-    return State(
+)::Tuple{State, Bool}
+    return (State(
         max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 0),
         current_state.score_diff,
         current_state.timeouts_remaining,
@@ -33,5 +33,5 @@ function select_kneel_child(
         current_state.down + 1,
         current_state.first_down_dist,
         false
-    )
+    ), false)
 end

@@ -232,7 +232,7 @@ test_state = State(26, -4, (2,2), 99, 2, 1, true)
 root_node = Node(test_state, 0, 0, [], [], Dict{String, Tuple{Int, Int}}(), Dict{String, Vector{Node}}())
 root_feasible = get_feasible_actions(test_state)
 for action in root_feasible
-    root_node.action_stats[action] = (0,0)
+    root_node.action_stats[action] = [0,0]
     root_node.visited_children[action] = []
 end
 println("Starting selection function")
@@ -241,3 +241,27 @@ println("Starting state: $(root_node.state)")
 println("Unexplored state: $(tuple_output[1])")
 println("Did we flip possesion: $(tuple_output[3] ? "Y" : "N")")
 println("Unexplored state parent: $(tuple_output[2].state)")
+leaf_node = expansion(tuple_output[1], tuple_output[2], tuple_output[3], tuple_output[4])
+println("\n\n--- Simulation Stage ---\n")
+simulation_output = simulation(leaf_node.state, false)
+println("Simulation output: $(simulation_output)")
+
+"""
+println("\n\n --- Simulation Test ---\n")
+simulation_test_state = State(120, 0, (3,3), 25, 1, 10, false)
+simulation_output = simulation(simulation_test_state, false)
+backpropogation(simulation_output[1], simulation_output[2], leaf_node)
+"""
+
+# Check the back propogation worked
+println("\n\n--- Backpropogation ---")
+backpropogation(simulation_output[1], simulation_output[2], leaf_node)
+println("Root: $(root_node.times_visited) $(root_node.total_score)")
+for children in values(root_node.visited_children)
+    for child in children
+        println("Child: $(child.times_visited) $(child.total_score)")
+    end
+end
+for (action, stats) in root_node.action_stats
+    println("Action: $(action) | Score: $(stats[1]) - Times visited: $(stats[2])")
+end

@@ -46,15 +46,11 @@ function select_action(
     node::Node
 )::String
     feasible_actions = get_feasible_actions(node.state)
-    println("Node state: $(node.state)")
-    println("Feasible actions: $feasible_actions")
-    println("Action stats: $(node.action_stats)")
 
     best_action_score = -Inf
     best_action = ""
     for action in feasible_actions
         # Check action that has not been explored before
-        println("Checking Node for actions stats for action $action")
         if node.action_stats[action][2] == 0
             return action
         end
@@ -62,6 +58,7 @@ function select_action(
         action_score = UCB(node.action_stats[action][1], node.action_stats[action][2], node.times_visited)
         if action_score > best_action_score
             best_action = action
+            best_action_score = action_score
         end
     end
     return best_action
@@ -76,79 +73,101 @@ end
 
 function selection(
     root::Node
-)::Tuple{State, Node, Bool}
+)::Tuple{State, Node, Bool, String, Bool} # New state, Leaf node, Posssesion change, Action, End of Game
     # Create node variable
     node = root
+    depth = 0
     while true
-        println("\next iteration")
+        depth += 1
+        #println("Search Depth: $(depth)")
         # Check if game over (no children then)
         if node.state.seconds_remaining <= 0
-            println("Hit end of game")
-            return (state, node, false) # TODO: Make sure this is handled appropriately
+            # We have been returning new state, leaf node but what happens when we reach end of game?
+            # I assume that we will need to return another bool var to indicate end of game selected
+            # Then check this bool var to see if expansion and simulation stages can be skipped
+            # Then backpropogate the value of the end of game state
+            #println("Selecting an end of game state")
+            return (node.state, node, false, "", true) # TODO: Make sure this is handled appropriately
         end
 
         # Select the action (using formula)
         action = select_action(node)
-        println("Selected action: $action")
 
         # Randomly select state from the outcome space of that action
-        random_state_tuple = random_state(node.state, action)
-        state = random_state_tuple[1]
-        println("Random outcome state: $state")
-        state_change_possesion = random_state_tuple[2]
+        state, state_change_possesion = random_state(node.state, action)
 
         # Look for node in tree
         state_node = find_node(root, state)
         if state_node === nothing
+            #println("Found our new state")
             # Retrun the leaf node and state of unexplored node
-            return (state, node, state_change_possesion) 
+            return (state, node, state_change_possesion, action, false)
         else
+            #println("Searching further")
             # Update 
             parent_found = false
-            for parent in child.parents
+            for parent in state_node.parents
                 if node == parent
                     parent_found = true
                 end
             end
             if !parent_found
-                push!(node.child.parents, node)
-                push!(node.parent_change_possesion, state_change_possesion)
+                push!(state_node.parents, node)
+                push!(state_node.parent_change_possesion, state_change_possesion)
             end
             # Repeat with process with already explored node
             node = state_node
-        end 
+        end
     end
 end
 # TODO: write a testing suite for the selection stage
 
 function expansion(
     new_state::State,
-    leaf_node::Node,
-    parent_change_possesion::Bool
+    parent_node::Node,
+    parent_change_possesion::Bool,
+    parent_action::String
 )::Node
-    new_node = create_node(
-        leaf_node,
-        parent_change_possession,
+    new_node = create_child(
+        parent_node,
+        parent_change_possesion,
         new_state
     )
-    push!(leaf_node.visited_children[action], new_node)
+    push!(parent_node.visited_children[parent_action], new_node)
     return new_node
 end
 # TODO: write a testingsuite for the expansion stage (this should be very simple)
+
+function evaluate_game(state::State)::Int
+    if IS_FIRST_HALF
+        return state.score_diff
+    else
+        if state.score_diff > 0
+            return 1
+        elseif state.score_diff == 0
+            return 0
+        else
+            return -1
+        end
+    end
+end
 
 """
 Returns the score from the random simulation
 """
 function simulation(
-    current_state::Node,
+    current_state::State,
     changed_possession::Bool
 )::Tuple{Int, Bool}
+    #println("Simulation with state: $current_state")
     # TODO: Make this simulation more random (while still maintaining some randomness)\
     if current_state.seconds_remaining <= 0
-        return evaluate_game(leaf_node.state)
+        #print("Terminal state: $(current_state)")
+        return (evaluate_game(current_state), changed_possession)
     else
         feasible_actions = get_feasible_actions(current_state)
         random_action = rand(feasible_actions)
+        #println("Chosen random action: $random_action")
         random_state_tuple = random_state(current_state, random_action)
         if random_state_tuple[2]
             return simulation(random_state_tuple[1], !changed_possession)
@@ -162,9 +181,9 @@ end
 function backpropogation(
     simulation_result::Int,
     changed_possesion::Bool,
-    node::Node
+    node::Node,
+    root_node::Node
 ) # VOID FUNCTION
-
     """ Update node stats """
     node.times_visited += 1
     if changed_possesion
@@ -175,7 +194,7 @@ function backpropogation(
 
     """ Check for root node / initial state """
     if length(node.parents) == 0
-        return
+        return root_node
     end
 
     """ Update action stats of parent node """
@@ -188,24 +207,25 @@ function backpropogation(
                 # Increment the times visited for action
                 node.parents[parent_index].action_stats[action][2] += 1
                 # Increment
+                parent_change_possesion = changed_possesion
                 if node.parent_change_possesion[parent_index]
                     parent_change_possesion = !changed_possesion
-                else
-                    parent_change_possesion = changed_possesion
                 end
-                if parent_change_possession
+                if parent_change_possesion
                     node.parents[parent_index].action_stats[action][1] -= simulation_result
                 else
-                    node.parents[parent_index].action_stats[action][2] += simulation_result
+                    node.parents[parent_index].action_stats[action][1] += simulation_result
                 end
-                backpropogation(
+                root_node = backpropogation(
                     simulation_result, 
                     parent_change_possesion,
-                    node.parents[parent_index]
+                    node.parents[parent_index],
+                    root_node
                 )
             end 
         end
     end
+    return root_node
 end
 
 """

@@ -25,8 +25,8 @@ end
 
 function select_spike_child(
     current_state::State,
-)::State
-    return State(
+)::Tuple{State, Bool}
+    return (State(
         current_state.seconds_remaining,
         current_state.score_diff,
         current_state.timeouts_remaining,
@@ -34,5 +34,5 @@ function select_spike_child(
         current_state.down + 1,
         current_state.first_down_dist,
         false
-    )
+    ), false)
 end

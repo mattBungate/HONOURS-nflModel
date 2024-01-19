@@ -125,7 +125,7 @@ function select_field_goal_child(
         if current_state.ball_section < FIELD_GOAL_MERCY_SECTION
             # Behind the mercy section
             return (State(
-                current_state.seconds_remaining - field_goal_duation,
+                current_state.seconds_remaining - field_goal_duration,
                 -current_state.score_diff,
                 reverse(current_state.timeouts_remaining),
                 flip_field(current_state.ball_section),

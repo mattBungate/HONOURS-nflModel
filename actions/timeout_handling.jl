@@ -46,8 +46,8 @@ end
 
 function select_immediate_timeout_child(
     current_state::State
-)::State
-    return State(
+)::Tuple{State, Bool}
+    return (State(
         current_state.seconds_remaining,
         current_state.score_diff,
         (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
@@ -55,13 +55,13 @@ function select_immediate_timeout_child(
         current_state.down,
         current_state.first_down_dist,
         false
-    )
+    ), false)
 end
 
 function select_delayed_timeout_child(
     current_state::State
-)::State
-    return State(
+)::Tuple{State, Bool}
+    return (State(
         max(current_state.seconds_remaining - MAX_PLAY_CLOCK_DURATION, 1),
         current_state.score_diff,
         (current_state.timeouts_remaining[1] - 1, current_state.timeouts_remaining[2]),
@@ -69,5 +69,5 @@ function select_delayed_timeout_child(
         current_state.down,
         current_state.first_down_dist,
         false
-    )
+    ), false)
 end

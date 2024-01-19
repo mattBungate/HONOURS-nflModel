@@ -175,20 +175,20 @@ end
 
 function select_hurried_play_child(
     current_state::State
-)::State
+)::Tuple{State, Bool}
     return select_play_child(current_state, 0)
 end
 
 function select_delayed_play_child(
     current_state::State
-)::State
+)::Tuple{State, Bool}
     return select_play_child(current_state, 1)
 end
 
 function select_play_child(
     current_state::State,
     delayed::Int
-)::State
+)::Tuple{State, Bool}
     """ Random Variables """
     # Time - TODO: I think this data already exists (used to create time_df, play_df)
     PLAY_DURATION_DIST = Normal(8, 2.5) # TODO: factor out time duraiton Distribution
@@ -198,7 +198,7 @@ function select_play_child(
     elseif play_duration > 11
         play_duration = 11
     end
-    time_remaining = max(current_state.seconds_remaining - delayed*MAX_PLAY_CLOCK_DURATION, 0)
+    time_remaining = max(current_state.seconds_remaining - delayed*MAX_PLAY_CLOCK_DURATION - play_duration, 0)
     # Ball position
     YARDS_GAINED_DIST = Normal(4, 10) # TODO: Fine tune numbers (or get from data processing)
     yards_gained = round(rand(YARDS_GAINED_DIST))
