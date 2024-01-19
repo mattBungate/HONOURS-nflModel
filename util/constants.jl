@@ -6,7 +6,7 @@ using DataFrames
 using CSV
 using Distributions
 
-const VERSION_NUM = "V_4_0_6"
+const VERSION_NUM = "V_4_0_7"
 
 const action_space = [
     "Kneel", 

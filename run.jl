@@ -30,11 +30,6 @@ function solve_MCTS(
 
     while current_iter < max_iters
         current_iter += 1
-        if mod(current_iter, max_iters/100) == 0
-            println("Iterations: $(current_iter)")
-            #print_node_summary(root_node)
-            print_node_action_stats(root_node)
-        end
         try 
             # 1. Selection (using formula)
             selected_state, leaf_node, change_possession, action, end_of_game = selection(root_node)
@@ -148,13 +143,16 @@ const RANDOM = false
 if !RANDOM
     Random.seed!(123)
 end
-
+"""
 println("Test state: $(test_state)")
 
 start_time = time()
 MCTS_output = solve_MCTS(test_state)
 end_time = time()
 
-println("Best action: $(MCTS_output[1])")
-println("Best action score: $(MCTS_output[2])")
-println("MCTS took $(end_time - start_time)")
+println("Best action: (MCTS_output[1])")
+println("Best action score: (MCTS_output[2])")
+println("MCTS took (end_time - start_time)s")
+"""
+
+run_tests()

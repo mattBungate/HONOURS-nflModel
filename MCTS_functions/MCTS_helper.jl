@@ -82,15 +82,11 @@ function selection(
         #println("Search Depth: $(depth)")
         # Check if game over (no children then)
         if node.state.seconds_remaining <= 0
-            # We have been returning new state, leaf node but what happens when we reach end of game?
-            # I assume that we will need to return another bool var to indicate end of game selected
-            # Then check this bool var to see if expansion and simulation stages can be skipped
-            # Then backpropogate the value of the end of game state
             #println("Selecting an end of game state")
             return (node.state, node, false, "", true) # TODO: Make sure this is handled appropriately
         end
 
-        # Select the action (using formula)
+        # Select the action (using UCB formula)
         action = select_action(node)
 
         # Randomly select state from the outcome space of that action
