@@ -134,8 +134,8 @@ function expansion(
 end
 # TODO: write a testingsuite for the expansion stage (this should be very simple)
 
-function evaluate_game(state::State)::Int
-    if IS_FIRST_HALF
+function evaluate_game(state::State, is_first_half::Bool)::Int
+    if is_first_half
         return state.score_diff
     else
         if state.score_diff > 0
@@ -153,22 +153,23 @@ Returns the score from the random simulation
 """
 function simulation(
     current_state::State,
+    is_first_half::Bool,
     changed_possession::Bool
 )::Tuple{Int, Bool}
     #println("Simulation with state: $current_state")
     # TODO: Make this simulation more random (while still maintaining some randomness)\
     if current_state.seconds_remaining <= 0
         #print("Terminal state: $(current_state)")
-        return (evaluate_game(current_state), changed_possession)
+        return (evaluate_game(current_state, is_first_half), changed_possession)
     else
         feasible_actions = get_feasible_actions(current_state)
         random_action = rand(feasible_actions)
         #println("Chosen random action: $random_action")
         random_state_tuple = random_state(current_state, random_action)
         if random_state_tuple[2]
-            return simulation(random_state_tuple[1], !changed_possession)
+            return simulation(random_state_tuple[1], is_first_half, !changed_possession)
         else
-            return simulation(random_state_tuple[1], changed_possession)
+            return simulation(random_state_tuple[1], is_first_half, changed_possession)
         end
     end
 end

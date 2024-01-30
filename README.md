@@ -73,3 +73,9 @@ The factors that are taken into consideration for a state are:
 Follows the rules of an NFL game. Every play will result in transitioning to a state where the seconds remaining have decreased. The seconds remaining is used to determine if the state is in a terminal case. 
 
 Instead of taking the expected value of each state resulted from every possible yards gained value, we need to consider the expected value of each state resulting from the yards gained AND time duration of play value. 
+
+## Version 3 - DFS
+Depth First Search (DFS) is the approach that was implemented in the above. Version 2 found that the state space was too large to completely search through all states and the runtime was becoming unreasonable, especially as the number of seconds remaining increased. Version 3 (DFS branch) looks at methods for handling this. This includes:
+- Limited depth then an estimation on the evaluation of the state (L-DFS)
+- Iteratively decrease interpolation step sizes to approach the optimal answer
+- Iteratively increase the refinement of the state space to converge to the optimal answer. 

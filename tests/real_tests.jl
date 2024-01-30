@@ -193,5 +193,6 @@ REAL_TEST_DESCRIPTION = Dict{Int,String}(
     7 => "4th & 2. Can go for it or punt. Fake punt. Pass completed.",
     8 => "4th & 2 36s left. Kicked field goal. Could've gone for it. ",
     9 => "1st & 10. Just made first down. 1:34 clock. No timeout. No huddle. 10 seconds to get off play. Pass incomplete",
-    10 => "3rd & 2. Clock ticking. No timeout called. Run play. Made first down"
+    10 => "3rd & 2. Clock ticking. No timeout called. Run play. Made first down",
+    11 => "Don't remember" # TODO: Find this scenario and write the description
 )
