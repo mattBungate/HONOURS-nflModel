@@ -58,7 +58,7 @@ function punt_value_calc(
             FIRST_DOWN_TO_GO,
             false
         )
-        punt_time_value = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
+        punt_time_value = -state_value_calc(next_state, false, "")[1]
         if current_state.seconds_remaining <= seconds
             best_case_state_value += best_case_end_game_prob * punt_time_value
             break
@@ -115,7 +115,7 @@ function punt_value_calc(
                         FIRST_DOWN_TO_GO,
                         false, # Clock ticking handling. Need data
                     )
-                    punt_time_value = state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
+                    punt_time_value = state_value_calc(next_state, false, "")[1]
                     if current_state.seconds_remaining <= seconds
                         punt_val += end_section_prob * game_end_duration_prob * punt_time_value
                         prob_remaining -= end_section_prob * game_end_duration_prob
@@ -165,7 +165,7 @@ function punt_value_calc(
                         FIRST_DOWN_TO_GO,
                         false
                     )
-                    punt_time_val = -state_value_calc_LDFS(next_state, seconds_cutoff, false, "")[1]
+                    punt_time_val = -state_value_calc(next_state, false, "")[1]
                     if current_state.seconds_remaining <= seconds
                         punt_val += end_section_prob * game_end_duration_prob * punt_time_val
                         prob_remaining -= end_section_prob * game_end_duration_prob
@@ -187,4 +187,102 @@ function punt_value_calc(
         end
     end
     return punt_val
+end
+
+function punt_outcome_space(
+    state::State
+)::Vector{Tuple{State, Float64, Bool}}
+    """ Invalid action """
+    # Action infeasible
+    
+    # Domain knowledge cutoff
+    # Only punt on 4th down and if out of field goal range
+    if state.down != 4 || state.ball_section < FIELD_GOAL_CUTOFF
+        return []
+    end
+
+    """ Outcome Space """
+    outcome_space = []
+    punt_probs = filter(row ->
+            (row[:"Punt Section"] == state.ball_section),
+        punt_df
+    )
+    # Returned for TD
+    return_td_end_of_game_prob = 1
+    punt_return_td_prob = punt_probs[1, Symbol("Def Endzone")]
+    for punt_duration in MIN_PUNT_DURATION:MAX_PUNT_DURATION
+        play_length = punt_duration
+
+        if play_length >= state.seconds_remaining
+            return_td_time_prob = return_td_end_of_game_prob
+        else
+            return_td_time_prob = PUNT_TIME_PROBS[punt_duration]
+            return_td_end_of_game_prob -= return_td_time_prob
+        end
+
+        state_prob = punt_return_td_prob * return_td_time_prob
+
+        push!(
+            outcome_space,
+            (
+                State(
+                    state.seconds_remaining - play_length,
+                    state.score_diff - TOUCHDOWN_SCORE,
+                    state.timeouts_remaining,
+                    TOUCHBACK_SECTION,
+                    FIRST_DOWN,
+                    FIRST_DOWN_TO_GO,
+                    false
+                ),
+                state_prob,
+                false
+            )
+        )
+
+        if punt_duration >= state.seconds_remaining
+            break 
+        end
+    end
+    # Non-scoring return
+    for field_position in NON_SCORING_FIELD_SECTIONS
+        end_of_game_prob = 1
+        pos_prob = punt_probs[1, Symbol("T-$(field_position)")]
+        if pos_prob == 1
+            continue # TODO: Founda n error (9 yard has a prob of 1?)
+        end
+
+        for punt_duration in MIN_PUNT_DURATION:MAX_PUNT_DURATION 
+            play_length = punt_duration
+            
+            if play_length >= state.seconds_remaining
+                time_prob = end_of_game_prob
+            else
+                time_prob = PUNT_TIME_PROBS[punt_duration]
+                end_of_game_prob -= time_prob
+            end
+
+            state_prob = pos_prob * time_prob
+
+            push!(
+                outcome_space,
+                (
+                    State(
+                        state.seconds_remaining - play_length,
+                        -state.score_diff,
+                        reverse(state.timeouts_remaining),
+                        flip_field(field_position),
+                        FIRST_DOWN,
+                        FIRST_DOWN_TO_GO,
+                        false
+                    ),
+                    state_prob,
+                    true
+                )
+            )
+            if play_length >= state.seconds_remaining
+                break 
+            end
+        end
+    end
+    return outcome_space
 end

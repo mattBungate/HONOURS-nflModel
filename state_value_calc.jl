@@ -4,20 +4,16 @@ Finds the optimal action given a state and returns that action and the expected 
 Parameters:
 state: State space currently occupied.
 """
-function state_value_calc_LDFS(
+function state_value_calc(
     state::State,
-    seconds_cutoff::Int, 
     is_root::Bool,
     best_move::String
 )
-    yield()
+    yield() 
     global state_value_calc_calls
-    if mod(state_value_calc_calls, FUNCTION_CALL_PRINT_INTERVAL) == 0
-        println("Function called $(state_value_calc_calls/1000000)M times")
-    end
     state_value_calc_calls += 1
     # Base cases
-    if state.seconds_remaining <= seconds_cutoff
+    if state.seconds_remaining <= 0
         return evaluate_game(state)
     end
 
@@ -34,12 +30,14 @@ function state_value_calc_LDFS(
         end
     end
 
+    """
     if !is_root
-        interpolated_output = interpolate_state_calc(state, seconds_cutoff)
+        interpolated_output = interpolate_state_calc(state, 0)
         if interpolated_output !== nothing
             return interpolated_output
         end
     end
+    """
 
     # Check if state is cached
     if haskey(state_values, state)
@@ -59,8 +57,9 @@ function state_value_calc_LDFS(
         action_value = action_functions[action](
             state,
             nothing, 
-            seconds_cutoff
+            0
         )
+        global state_value_calc_calls
         # Store action value if value returned        
         if action_value !== nothing
             action_values[action] = action_value
@@ -81,3 +80,22 @@ function state_value_calc_LDFS(
     return optimal_action
 end
 
+function calculate_action_value(
+    state::State,
+    action::String
+)
+    outcome_space = generate_outcome_space[action](state) 
+    println("Outcome space size: $(outcome_space)")
+
+    action_val = 0
+    for (outcome_state, outcome_prob, outcome_change_possession) in outcome_space
+        state_value = state_value_calc(outcome_state, false, "")
+        println("Value $(state_value) for state $(outcome_state)")
+        if outcome_change_possession
+            action_val -= outcome_prob * state_value[1]
+        else
+            action_val += outcome_prob * state_value[1]
+        end
+    end
+    return action_val
+end
