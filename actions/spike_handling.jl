@@ -42,7 +42,9 @@ function spike_outcome_space(
                 state.down + 1,
                 state.first_down_dist,
                 false
-            )
+            ),
+            1,
+            false
         )
     ]
 end

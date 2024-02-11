@@ -146,11 +146,6 @@ function field_goal_outcome_space(
     col_name = Symbol("T-$(ball_section_10_yard)")
     field_goal_prob = field_goal_df[1, col_name]
 
-    time_probs = filter(row ->
-            (row[:"Field Section"] == ball_section_10_yard),
-        time_field_goal_df
-    )
-
     # Set up this way instead of 1 for loop for order of states in output
     # This puts all made field goal states at the front and missed field goals behind
 
@@ -158,10 +153,11 @@ function field_goal_outcome_space(
     remaining_made_time_prob = 1
     for seconds in MIN_FIELD_GOAL_DURATION:MAX_FIELD_GOAL_DURATION
         # Adjust probability for end of game field goals
-        if seconds == state.seconds_remaining
+        if seconds >= state.seconds_remaining
             time_prob = remaining_made_time_prob
         else
-            time_prob = time_probs[1, Symbol("$(seconds) secs")]
+            time_prob = FG_TIME_PROBS[seconds]
+            remaining_made_time_prob -= time_prob
         end
         made_state_prob = field_goal_prob * time_prob
 
@@ -184,18 +180,20 @@ function field_goal_outcome_space(
             )
         end
         # Check if this was end of game play
-        if seconds == state.seconds_remaining
+        if seconds >= state.seconds_remaining
             break
         end
     end
 
     # Missed field goal
+    remaining_missed_time_prob = 1
     for seconds in MIN_FIELD_GOAL_DURATION:MAX_FIELD_GOAL_DURATION
         # Adjust probability for end of game field goals
-        if seconds == state.seconds_remaining
-            time_prob = remaining_made_time_prob
+        if seconds >= state.seconds_remaining
+            time_prob = remaining_missed_time_prob
         else
-            time_prob = time_probs[1, Symbol("$(seconds) secs")]
+            time_prob = FG_TIME_PROBS[seconds]
+            remaining_missed_time_prob -= time_prob
         end
         missed_state_prob = (1 - field_goal_prob) * time_prob
 
@@ -239,7 +237,7 @@ function field_goal_outcome_space(
             end
         end
         # Check if this was an end of game play
-        if seconds == state.seconds_remaining
+        if seconds >= state.seconds_remaining
             break
         end
     end

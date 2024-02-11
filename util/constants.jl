@@ -160,6 +160,30 @@ for (key, value) in PUNT_TIME_PROBS
 end
 println()
 
+# Dummy field goal duration probability
+# TODO: get proper values
+# Current method: Normal distribution with mean the average of the max & min punt length
+ave_fg_duration = (MAX_FIELD_GOAL_DURATION + MIN_FIELD_GOAL_DURATION) / 2
+std_dev = 2.0
+norm_dist = Normal(ave_fg_duration, std_dev)
+
+FG_TIME_PROBS = Dict{Int, Float64}()
+for fg_duration in MIN_FIELD_GOAL_DURATION:MAX_FIELD_GOAL_DURATION
+    if fg_duration == MIN_FIELD_GOAL_DURATION
+        FG_TIME_PROBS[fg_duration] = cdf(norm_dist, fg_duration + 0.5)
+    elseif fg_duration == MAX_FIELD_GOAL_DURATION
+        FG_TIME_PROBS[fg_duration] = 1 - cdf(norm_dist, fg_duration - 0.5)
+    else
+        FG_TIME_PROBS[fg_duration] = cdf(norm_dist, fg_duration + 0.5) - cdf(norm_dist, fg_duration - 0.5)
+    end
+end
+
+println("Field goal duration probabilities")
+for (key, value) in FG_TIME_PROBS
+    println("$(key)s - $(value)")
+end
+println()
+
 # TODO: Double check this is where this stuff should be. Chucking it here for now
 # Data
 play_df = CSV.File("processed_data/stats_1_yard_sections.csv") |> DataFrame             # TODO: Missing data for last 10 yards with timeout called

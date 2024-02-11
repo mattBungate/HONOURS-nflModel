@@ -11,6 +11,7 @@ include("actions/play_handling.jl")
 include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
 include("actions/timeout_handling.jl")
+include("actions/action_value_calc.jl")
 include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
@@ -19,15 +20,16 @@ include("evaluate_game.jl")
 include("order_actions.jl")
 
 action_space = ["Kneel", "Punt", "Delayed Play", "Delayed Timeout", "Field Goal", "Timeout", "Hurried Play", "Spike"]
-action_functions = Dict{String,Function}(
-    "Kneel" => kneel_value_calc,
-    "Timeout" => immediate_timeout_value_calc,
-    "Delayed Timeout" => delayed_timeout_value_calc,
-    "Field Goal" => field_goal_value_calc,
-    "Punt" => punt_value_calc,
-    "Hurried Play" => hurried_play_action_calc,
-    "Delayed Play" => delayed_play_action_calc,
-    "Spike" => spike_value_calc
+
+generate_outcome_space = Dict{String, Function}(
+    "Kneel" => kneel_outcome_space,
+    "Timeout" => immediate_timeout_outcome_space,
+    "Delayed Timeout" => delayed_timeout_outcome_space,
+    "Field Goal" => field_goal_outcome_space,
+    "Punt" => punt_outcome_space,
+    "Hurried Play" => hurried_play_outcome_space,
+    "Delayed Play" => delayed_play_outcome_space,
+    "Spike" => spike_outcome_space
 )
 
 function solve_DFS(
@@ -73,30 +75,9 @@ const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
 test_case = REAL_TESTS[4]
 test_state = test_case[1]
 test_action = test_case[2]
-"""
-State:
-- Seconds remaining
-- Score differential
-- Timeouts remaining
-- Ball position
-- Down
-- First down dist
-- Clock ticking
-"""
-dummy_test_state = State(
-    16,
-    test_state.score_diff,
-    test_state.timeouts_remaining,
-    50,
-    4,
-    1,
-    test_state.clock_ticking
-)
-#println(REAL_TEST_DESCRIPTION[11])
 
 const starting_score_diff = test_state.score_diff
 const SCORE_BOUND = 14
-
 
 function run_with_timeout(func::Function, timeout_seconds::Int, state::State, initial_depth::Int, depth_step::Int)
     @sync begin
@@ -115,11 +96,42 @@ function run_with_timeout(func::Function, timeout_seconds::Int, state::State, in
     end
     println("Exiting improved_run_with_timeout")
 end
+"""
+State:
+- Seconds remaining
+- Score differential
+- Timeouts remaining
+- Ball position
+- Down
+- First down dist
+- Clock ticking
+"""
 
-interpolated_value_calls = 0
-global state_values = Dict{State, Tuple{Float64, String}}()
+for seconds in 1:20
+    for timeouts_remaining in 0:3
 
-println("Test state: $(dummy_test_state)")
+        dummy_test_state = State(
+            seconds,
+            test_state.score_diff,
+            (timeouts_remaining, timeouts_remaining),
+            85,
+            4,
+            1,
+            true
+        )
 
-#play_outcomes = delayed_play_outcome_space(dummy_test_state)
-#punt_outcomes = punt_outcome_space(dummy_test_state)
+        global state_values = Dict{State, Tuple{Float64, String}}()
+        global function_calls = 0 
+
+        println("\nSeconds: $(seconds)s | Timeouts: ($(timeouts_remaining), $(timeouts_remaining))")
+
+        start_time = time()
+        optimal_value, optimal_action = state_value_calc(dummy_test_state, true, "")
+        end_time = time()
+        duration = end_time - start_time
+
+        println("Cached states: $(length(state_values))")
+        println("Optimal action: $(optimal_action) ($(optimal_value))")
+        println("Solve time: $(duration)s")
+    end
+end
