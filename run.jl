@@ -1,6 +1,9 @@
 using DataFrames
 using CSV
 using Distributions
+using Base: @sync, @async, Task
+
+using Base.Threads: Atomic
 
 include("util/state.jl")
 include("util/constants.jl")
@@ -78,24 +81,76 @@ test_action = test_case[2]
 
 const starting_score_diff = test_state.score_diff
 const SCORE_BOUND = 14
-
-function run_with_timeout(func::Function, timeout_seconds::Int, state::State, initial_depth::Int, depth_step::Int)
+"""
+function run_with_timeout(
+    func::Function, 
+    timeout_seconds::Int, 
+    state::State
+)
     @sync begin
         task = @async begin
             try
-                func(state, initial_depth, depth_step)
+                return func(state, true, "")
             catch e
-                println("Task interrupted or an error occurred: $e")
-            finally
-                println("We are now exiting the @async block")
-                yield()
+                println("Task interrupted or an error occurred: e")
+                rethrow()
+                return -Inf, "Timed out"
             end
         end
         sleep(timeout_seconds)
         schedule(task, InterruptException(), error=true)
     end
-    println("Exiting improved_run_with_timeout")
 end
+"""
+
+
+
+function run_with_timeout(func::Function, timeout_seconds::Int, state)
+    result = Ref{Any}((-Inf, "Timed out", -1))
+    done = Channel{Bool}(1) # Channel to signal task completion
+    stop_signal = Atomic{Bool}(false) # Shared signal to indicate stopping
+
+    @sync begin
+        @async begin
+            try
+                start_time = time()
+                action_val, optimal_action = func(state, true, "", stop_signal) # func needs to accept stop_signal and check it
+                end_time = time()
+                if !stop_signal[]
+                    result[] = (action_val, optimal_action, end_time - start_time) # Store result and execution time
+                end
+                # Signal completion by closing the channel, which also signals the timer task to stop waiting
+                close(done)
+            catch e
+                println("Task interrupted or an error occurred: $e")
+            end
+        end
+
+        @async begin
+            sleep(timeout_seconds)
+            if isopen(done) # Check if the channel is still open before attempting to signal
+                stop_signal[] = true # Signal the function to stop
+                try
+                    put!(done, false) # Signal timeout, if the channel is still open
+                catch e
+                    # Channel might be closed if function completed just before timeout
+                end
+            end
+        end
+    end
+    
+    # Wait for either completion or timeout, but due to channel being closed by the func task,
+    # this will immediately proceed if func finishes first.
+    if isopen(done)
+        take!(done) # This will only block if the done channel is still open and has not been taken or closed.
+    end
+    
+    return result[]
+end
+
+
+
+
 """
 State:
 - Seconds remaining
@@ -107,31 +162,14 @@ State:
 - Clock ticking
 """
 
-for seconds in 1:20
-    for timeouts_remaining in 0:3
+test_state = State(
+    1,
+    0,
+    (0,0),
+    20,
+    1,
+    10,
+    false
+)
 
-        dummy_test_state = State(
-            seconds,
-            test_state.score_diff,
-            (timeouts_remaining, timeouts_remaining),
-            85,
-            4,
-            1,
-            true
-        )
-
-        global state_values = Dict{State, Tuple{Float64, String}}()
-        global function_calls = 0 
-
-        println("\nSeconds: $(seconds)s | Timeouts: ($(timeouts_remaining), $(timeouts_remaining))")
-
-        start_time = time()
-        optimal_value, optimal_action = state_value_calc(dummy_test_state, true, "")
-        end_time = time()
-        duration = end_time - start_time
-
-        println("Cached states: $(length(state_values))")
-        println("Optimal action: $(optimal_action) ($(optimal_value))")
-        println("Solve time: $(duration)s")
-    end
-end
+test_kickoff("memoisation")  
