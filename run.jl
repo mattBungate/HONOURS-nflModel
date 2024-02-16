@@ -15,7 +15,7 @@ include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
 include("actions/timeout_handling.jl")
 include("actions/action_value_calc.jl")
-include("tests/real_tests.jl")
+#include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
 include("interpolation.jl")
@@ -36,7 +36,7 @@ generate_outcome_space = Dict{String, Function}(
 )
 
 function solve_DFS(
-    initial_state::State,
+    initial_state::StateFH,
     initial_depth::Int,
     depth_step::Int
 )
@@ -75,12 +75,12 @@ global interpolated_value_calls = 0
 const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
 
 # Order from easiest to hardest: 4, 8, 11, 10, 6, 7
-test_case = REAL_TESTS[4]
-test_state = test_case[1]
-test_action = test_case[2]
+#test_case = REAL_TESTS[4]
+#test_state = test_case[1]
+#test_action = test_case[2]
 
-const starting_score_diff = test_state.score_diff
-const SCORE_BOUND = 14
+#const starting_score_diff = test_state.score_diff
+#const SCORE_BOUND = 14
 """
 function run_with_timeout(
     func::Function, 
@@ -105,7 +105,7 @@ end
 
 
 
-function run_with_timeout(func::Function, timeout_seconds::Int, state)
+function run_with_timeout(func::Function, timeout_seconds::Int, state::StateFH)
     result = Ref{Any}((-Inf, "Timed out", -1))
     done = Channel{Bool}(1) # Channel to signal task completion
     stop_signal = Atomic{Bool}(false) # Shared signal to indicate stopping
@@ -160,7 +160,7 @@ State:
 - Down
 - First down dist
 - Clock ticking
-"""
+
 
 test_state = State(
     1,
@@ -172,4 +172,40 @@ test_state = State(
     false
 )
 
-test_kickoff("memoisation")  
+
+
+
+"""
+
+
+#test_kickoff("first_half/interpolation")  
+
+println("Done with testing kickoff. Next up is 2min kickoff situations:")
+for timeouts_remaining in 0:3
+    global state_values = Dict{StateFH, Tuple{Float64, String}}()
+    global state_value_calc_calls = 0
+    println("Calculating state value $(StateFH(
+        120,
+        (timeouts_remaining, timeouts_remaining),
+        TOUCHBACK_SECTION,
+        FIRST_DOWN,
+        FIRST_DOWN_TO_GO,
+        false
+    ))")
+    @time state_value_calc(
+        StateFH(
+            120,
+            (timeouts_remaining, timeouts_remaining),
+            TOUCHBACK_SECTION,
+            FIRST_DOWN,
+            FIRST_DOWN_TO_GO,
+            false
+        ),
+        true,
+        "",
+        Atomic{Bool}(false)
+    )
+    
+    println("Number of states stored: ($length(state_values))")
+    println("Function calls: ($state_value_calc_calls)")
+end

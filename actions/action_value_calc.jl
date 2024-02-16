@@ -1,17 +1,12 @@
 function action_value_calc(
-    outcome_space::Vector{Tuple{State, Float64, Bool}},
+    outcome_space::Vector{Tuple{StateFH, Float64, Int, Bool}},
     is_root::Bool,
     stop_signal::Atomic{Bool}
 )::Float64
-    
     action_value = 0
-    for (state, prob, change_possession) in outcome_space
+    for (state, prob, reward, change_possession) in outcome_space
         next_state_val = state_value_calc(state, false, "", stop_signal)[1]
-        if is_root
-            if next_state_val > 1
-                throw(ArgumentError("Valued state over 1"))
-            end
-        end
+        action_value += prob * reward
         if change_possession
             action_value -= prob * next_state_val
         else

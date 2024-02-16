@@ -11,9 +11,8 @@ Fields:
 - clock_ticking: Game clock ticking after play ends 
 - is_first_half: First or second half 
 """
-struct State
+struct StateFH
     seconds_remaining::Int
-    score_diff::Int
     timeouts_remaining::Tuple{Int,Int}
     ball_section::Int
     down::Int
@@ -22,12 +21,11 @@ struct State
 end
 
 # Set up printing state object
-function Base.show(io::IO, s::State)
+function Base.show(io::IO, s::StateFH)
     print(
         io,
-        "State(
+        "StateFH(
     Seconds remaining: $(s.seconds_remaining)
-    Score differential: $(s.score_diff)
     Timeouts remaining: $(s.timeouts_remaining)
     Ball section: $(s.ball_section)
     Down: $(s.down)

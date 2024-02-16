@@ -5,7 +5,7 @@ Parameters:
 state: State space currently occupied.
 """
 function state_value_calc(
-    state::State,
+    state::StateFH,
     is_root::Bool,
     best_move::String,
     stop_signal::Atomic{Bool}
@@ -17,7 +17,7 @@ function state_value_calc(
     state_value_calc_calls += 1
     # Base cases
     if state.seconds_remaining <= 0
-        return evaluate_game(state)
+        return 0 #evaluate_game(state)
     end
 
     # Check if state is cached
@@ -25,6 +25,16 @@ function state_value_calc(
     if haskey(state_values, state)
         return state_values[state]
     end
+
+    # Check of interpolation
+    """"
+    if !is_root
+        interpolation_output = interpolate_state_calc(state)
+        if interpolation_output !== nothing
+            return interpolation_output
+        end
+    end
+    """
 
     # Initialise arrays to store action space and associated values
     action_values = Dict{String,Float64}()
@@ -55,14 +65,14 @@ function state_value_calc(
         end
         # Value action
         action_value = action_value_calc(outcome_space, is_root, stop_signal)
+        
+        action_values[action] = action_value
         """
         if is_root
             println("$action_value ($(prob_sum))\n")
         end
         """
-        action_values[action] = action_value
     end
-
     """
     if is_root
         println("State: $(state)")

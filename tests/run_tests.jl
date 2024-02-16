@@ -58,7 +58,10 @@ function run_tests()
     end
 end
 
-function test_kickoff(file_name::String)
+function test_kickoff(
+    file_name::String, 
+    start_seconds_remaining::Int=1
+)
     println("Starting kickoff testing")
     # Initialise
     df = DataFrame(
@@ -74,19 +77,18 @@ function test_kickoff(file_name::String)
     no_search = [false, false, false, false]
     max_search_time = 40
 
-    seconds_remaining = 1
+    seconds_remaining = start_seconds_remaining
     while true # seconds loop
         for timeouts_remaining in 0:3
             # Continue if no longer searching timeouts_remaining case
             if no_search[timeouts_remaining + 1]
                 continue
             end
-            global state_values = Dict{State, Tuple{Float64, String}}()
+            global state_values = Dict{StateFH, Tuple{Float64, String}}()
             global state_value_calc_calls = 0
 
-            test_state = State(
+            test_state = StateFH(
                 seconds_remaining,
-                0,
                 (timeouts_remaining, timeouts_remaining),
                 TOUCHBACK_SECTION,
                 FIRST_DOWN,
@@ -95,6 +97,7 @@ function test_kickoff(file_name::String)
             )
 
             try
+                print("Solving $(seconds_remaining) second with $(timeouts_remaining) timeouts")
                 action_val, optimal_action, solve_time = run_with_timeout(
                     state_value_calc, 
                     max_search_time,
@@ -116,14 +119,16 @@ function test_kickoff(file_name::String)
                         function_calls = state_value_calc_calls
                     )
                 )
+                print(" - Solved\n")
                 CSV.write("tests/test_kickoff/$(file_name).csv", df)
                 if solve_time > max_search_time
                     no_search[timeouts_remaining + 1] = true
                 end
             catch e
-                println("Task interrupted with error $e")
+                println(" - Timed out")
+                #println("Task interrupted with error $e")
                 no_search[timeouts_remaining + 1] = true
-                println("$timeouts_remaining timeouts max seconds: $(seconds_remaining - 1)")
+                #println("$timeouts_remaining timeouts max seconds: $(seconds_remaining - 1)")
             end
         end
         # Check if all timed out
