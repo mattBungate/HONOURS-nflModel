@@ -27,14 +27,12 @@ function state_value_calc(
     end
 
     # Check of interpolation
-    """"
     if !is_root
         interpolation_output = interpolate_state_calc(state)
         if interpolation_output !== nothing
             return interpolation_output
         end
     end
-    """
 
     # Initialise arrays to store action space and associated values
     action_values = Dict{String,Float64}()
