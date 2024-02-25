@@ -57,3 +57,95 @@ function run_tests()
         CSV.write("test_results/$(VERSION_NUM)", df_row, append=true)
     end
 end
+
+
+function test_kickoff(
+    file_name::String, 
+    start_seconds_remaining::Int=1
+)
+    println("Starting kickoff testing")
+    # Initialise
+    df = DataFrame(
+        seconds = Int[],
+        timeouts_remaining = Int[],
+        optimal_action = String[],
+        action_value = Float64[],
+        solve_time = Float64[],
+        stored_states = Int[],
+        function_calls = Int[]
+    )
+
+    no_search = [false, false, false, false]
+    max_search_time = 40
+
+    seconds_remaining = start_seconds_remaining
+    while true # seconds loop
+        for timeouts_remaining in 0:3
+            # Continue if no longer searching timeouts_remaining case
+            if no_search[timeouts_remaining + 1]
+                continue
+            end
+            global state_values = Dict{State, Tuple{Float64, String}}()
+            global state_value_calc_calls = 0
+
+            test_state = State(
+                seconds_remaining,
+                0, 
+                (timeouts_remaining, timeouts_remaining),
+                TOUCHBACK_SECTION,
+                FIRST_DOWN,
+                FIRST_DOWN_TO_GO,
+                false
+            )
+
+            try
+                print("Solving $(seconds_remaining) second with $(timeouts_remaining) timeouts")
+                action_val, optimal_action, solve_time = run_with_timeout(
+                    state_value_calc, 
+                    max_search_time,
+                    test_state
+                )
+
+                # Write solution to csv
+                global state_values
+                global state_value_calc_calls
+                push!(
+                    df,
+                    (
+                        seconds = seconds_remaining,
+                        timeouts_remaining = timeouts_remaining,
+                        optimal_action = optimal_action,
+                        action_value = action_val,
+                        solve_time = solve_time,
+                        stored_states = length(state_values),
+                        function_calls = state_value_calc_calls
+                    )
+                )
+                print(" - Solved\n")
+                CSV.write("tests/test_kickoff/$(file_name).csv", df)
+                if solve_time > max_search_time
+                    no_search[timeouts_remaining + 1] = true
+                end
+            catch e
+                println(" - Timed out")
+                #println("Task interrupted with error $e")
+                no_search[timeouts_remaining + 1] = true
+                #println("$timeouts_remaining timeouts max seconds: $(seconds_remaining - 1)")
+            end
+        end
+        # Check if all timed out
+        break_out = true
+        for case in no_search
+            if case == false
+                break_out = false
+            end
+        end
+        seconds_remaining += 1
+        # If we reach here we break out
+        if break_out
+            break
+        end
+    end
+    println(df)
+    CSV.write("tests/test_kickoff/$(file_name).csv", df)
+end
