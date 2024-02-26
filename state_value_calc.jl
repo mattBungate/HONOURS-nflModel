@@ -21,9 +21,9 @@ function state_value_calc(
     end
 
     # Check if state is cached
-    #if haskey(state_values, state)
-    #    return state_values[state]
-    #end
+    if haskey(state_values, state)
+        return state_values[state]
+    end
 
     # Initialise arrays to store action space and associated values
     action_values = Dict{String,Float64}()

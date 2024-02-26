@@ -15,7 +15,7 @@ include("actions/kneel_handling.jl")
 include("actions/spike_handling.jl")
 include("actions/timeout_handling.jl")
 include("actions/action_value_calc.jl")
-#include("tests/real_tests.jl")
+include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
 include("interpolation.jl")
@@ -133,4 +133,43 @@ State:
 - Clock ticking
 """
 
-test_kickoff("second_half/default")
+test_kickoff("second_half/memoisation")
+
+df = DataFrame(
+    seconds = Int[],
+    test_scenario = Int[],
+    action_value = Float64[],
+    solve_time = Float64[],
+    stored_states = Int[],
+    function_calls = Int[]
+)
+
+global state_values = Dict{State, Tuple{Float64, String}}()
+global state_value_calc_calls = 0
+
+REAL_TEST_IDX = 4
+
+test_state, _, outcome = REAL_TESTS[REAL_TEST_IDX]
+
+println("Starting solve of: $test_state")
+
+start_time = time()
+action_val, optimal_action = state_value_calc(test_state, true, "", Atomic{Bool}(false))
+end_time = time()
+solve_time = end_time - start_time
+
+println("$(timeouts_remaining) timeouts case solved in $(solve_time)")
+
+push!(
+    df,
+    (
+        seconds = seconds_remaining,
+        test_scenario = REAL_TEST_IDX,
+        optimal_action = optimal_action,
+        action_value = action_val,
+        solve_time = solve_time,
+        stored_state = length(state_values),
+        function_calls = state_value_calc_calls
+    )
+)
+CSV.write("tests/real/default.csv", df)
