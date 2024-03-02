@@ -133,7 +133,7 @@ State:
 - Clock ticking
 """
 
-test_kickoff("second_half/memoisation")
+#test_kickoff("second_half/interpolation")
 
 df = DataFrame(
     seconds = Int[],
@@ -151,14 +151,27 @@ REAL_TEST_IDX = 4
 
 test_state, _, outcome = REAL_TESTS[REAL_TEST_IDX]
 
-println("Starting solve of: $test_state")
+for timeouts_remaining in 0:2
+    timeout_reduced_state = State(
+        test_state.seconds_remaining,
+        test_state.score_diff,
+        (timeouts_remaining, timeouts_remaining),
+        test_state.ball_section,
+        test_state.down,
+        test_state.first_down_dist,
+        test_state.clock_ticking
+    )
+    
+    println("Starting solve of: $timeout_reduced_state")
 
-start_time = time()
-action_val, optimal_action = state_value_calc(test_state, true, "", Atomic{Bool}(false))
-end_time = time()
-solve_time = end_time - start_time
+    start_time = time()
+    action_val, optimal_action = state_value_calc(timeout_reduced_state, true, "", Atomic{Bool}(false))
+    end_time = time()
+    solve_time = end_time - start_time
 
-println("$(timeouts_remaining) timeouts case solved in $(solve_time)")
+    println("$(timeouts_remaining) timeouts case solved in $(solve_time)")
+
+end
 
 push!(
     df,

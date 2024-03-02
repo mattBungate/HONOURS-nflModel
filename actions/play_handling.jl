@@ -453,7 +453,7 @@ function play_outcome_space(
                                     state.timeouts_remaining,
                                     field_position,
                                     FIRST_DOWN,
-                                    state.ball_section + state.first_down_dist - field_position,
+                                    min(30, state.ball_section + state.first_down_dist - field_position),
                                     Bool(clock_ticking)
                                 ),
                                 state_prob,

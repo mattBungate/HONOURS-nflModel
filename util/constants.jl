@@ -106,7 +106,19 @@ for first_down_dist in 1:30
     end
 end
 # Time values
-seconds_calculated = [1, 2, 3, 5, 7, 9, 11, 13, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120]
+seconds_calculated = []
+for seconds in 1:20
+    push!(seconds_calculated, seconds)
+end
+for seconds in 22:2:120
+    push!(seconds_calculated, seconds)
+end
+time_neighbours = Dict{Int, Tuple{Int, Int}}()
+for second in 1:120
+    if !in(seconds_calculated, second)
+        time_neighbours[second] = (second - 1, second + 1)
+    end
+end
 println("Seconds Calculated: $(seconds_calculated)")
 println("Number of First down dist values: $(length(calculated_first_down))")
 println("Number of ball positions calculated: $(length(calculated_sections))")
