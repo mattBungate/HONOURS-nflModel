@@ -24,6 +24,19 @@ function conversion_decision(
     if haskey(conversion_state_values, state)
         return conversion_state_values[state]
     end
+    # Check of symmetric
+    sym_state = ConversionState(
+        state.seconds_remaining,
+        -state.score_diff,
+        reverse(state.timeouts_remaining)
+    )
+    if haskey(
+        conversion_state_values,
+        sym_state
+    )
+        sym_val = conversion_state_values[sym_state]
+        return (-sym_val[1], sym_val[2])
+    end
 
     optimal_action = ""
     optimal_action_value = -Inf

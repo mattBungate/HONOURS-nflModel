@@ -23,6 +23,19 @@ function kickoff_decision(
     if haskey(kickoff_state_values, state)
         return kickoff_state_values[state]
     end
+    # Check for symmetric state
+    sym_state = KickoffState(
+        state.seconds_remaining,
+        -state.score_diff,
+        reverse(state.timeouts_remaining)
+    )
+    if haskey(
+        kickoff_state_values,
+        sym_state
+    )
+        sym_val = kickoff_state_values[sym_state]
+        return (-sym_val[1], sym_val[2])
+    end
 
     optimal_action = ""
     optimal_action_value = -Inf

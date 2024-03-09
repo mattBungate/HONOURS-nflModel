@@ -36,6 +36,23 @@ function play_decision(
             return interpolated_output
         end
     end
+    # Check for symmetric state in cache
+    sym_state = PlayState(
+        state.seconds_remaining,
+        -state.score_diff,
+        reverse(state.timeouts_remaining),
+        state.ball_section,
+        state.down,
+        state.first_down_dist,
+        state.clock_ticking
+    )
+    if haskey(
+        play_state_values,
+        sym_state
+    )
+        sym_val = play_state_values[sym_state]
+        return (-sym_val[1], sym_val[2])
+    end
 
     optimal_action = ""
     optimal_action_value = -Inf
