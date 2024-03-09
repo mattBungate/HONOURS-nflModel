@@ -11,7 +11,7 @@ Fields:
 - clock_ticking: Game clock ticking after play ends 
 - is_first_half: First or second half 
 """
-struct State
+struct PlayState
     seconds_remaining::Int
     score_diff::Int
     timeouts_remaining::Tuple{Int,Int}
@@ -21,11 +21,23 @@ struct State
     clock_ticking::Bool
 end
 
+struct ConversionState
+    seconds_remaining::Int
+    score_diff::Int
+    timeouts_remaining::Tuple{Int, Int}
+end
+
+struct KickoffState
+    seconds_remaining::Int
+    score_diff::Int
+    timeouts_remaining::Tuple{Int, Int}
+end
+
 # Set up printing state object
-function Base.show(io::IO, s::State)
+function Base.show(io::IO, s::PlayState)
     print(
         io,
-        "State(
+        "PlayState(
     Seconds remaining: $(s.seconds_remaining)
     Score differential: $(s.score_diff)
     Timeouts remaining: $(s.timeouts_remaining)
@@ -33,6 +45,28 @@ function Base.show(io::IO, s::State)
     Down: $(s.down)
     First down section: $(s.first_down_dist)
     Clock ticking: $(s.clock_ticking ? "Y" : "N")
+)"
+    )
+end
+
+function Base.show(io::IO, s::ConversionState)
+    print(
+        io,
+        "ConvesrionState(
+    Seconds remaining: $(s.seconds_remaining)
+    Score differential: $(s.score_diff)
+    Timeouts remaining: $(s.timeouts_remaining)
+)"
+    )
+end
+
+function Base.show(io::IO, s::KickoffState)
+    print(
+        io,
+        "KickoffState(
+    Seconds remaining: $(s.seconds_remaining)
+    Score differential: $(s.score_diff)
+    Timeouts remaining: $(s.timeouts_remaining)
 )"
     )
 end

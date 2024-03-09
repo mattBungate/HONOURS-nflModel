@@ -14,9 +14,9 @@ States of interesting plays in real games
 Key: GAME ID
 Value: State object of state of game
 """
-REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
+REAL_TESTS = Dict{Int,Tuple{PlayState,Bool,String}}(
     1 => (
-        State(
+        PlayState(
             296,
             -7,
             (0, 3),
@@ -29,7 +29,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Delay of Game Penalty"
     ),
     2 => (
-        State(
+        PlayState(
             296,
             -7,
             (0, 3),
@@ -42,7 +42,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Pass"
     ),
     3 => (
-        State(
+        PlayState(
             145,
             -8,
             (3, 2),
@@ -55,7 +55,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Field Goal"
     ),
     4 => (
-        State(
+        PlayState(
             26,
             -4,
             (2, 2),
@@ -68,7 +68,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Pass"
     ),
     5 => (
-        State(
+        PlayState(
             245,
             -11,
             (3, 3),
@@ -81,7 +81,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Pass"
     ),
     6 => (
-        State(
+        PlayState(
             93,
             8,
             (3, 3),
@@ -94,7 +94,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Defenseive Timeout"
     ),
     7 => (
-        State(
+        PlayState(
             93,
             8,
             (3, 2),
@@ -107,7 +107,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Fake Punt. Completed Pass"
     ),
     8 => (
-        State(
+        PlayState(
             36,
             8,
             (3, 2),
@@ -120,7 +120,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Field Goal. Made."
     ),
     9 => (
-        State(
+        PlayState(
             103,
             -7,
             (3, 3),
@@ -133,7 +133,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Pass. Incomplete"
     ),
     10 => (
-        State(
+        PlayState(
             83,
             -7,
             (3, 3),
@@ -146,7 +146,7 @@ REAL_TESTS = Dict{Int,Tuple{State,Bool,String}}(
         "Run. Made first down"
     ),
     11 => (
-        State(
+        PlayState(
             62,
             -7,
             (3, 3),
@@ -193,5 +193,6 @@ REAL_TEST_DESCRIPTION = Dict{Int,String}(
     7 => "4th & 2. Can go for it or punt. Fake punt. Pass completed.",
     8 => "4th & 2 36s left. Kicked field goal. Could've gone for it. ",
     9 => "1st & 10. Just made first down. 1:34 clock. No timeout. No huddle. 10 seconds to get off play. Pass incomplete",
-    10 => "3rd & 2. Clock ticking. No timeout called. Run play. Made first down"
+    10 => "3rd & 2. Clock ticking. No timeout called. Run play. Made first down",
+    11 => "IDK. Dont remember. Go find" # TODO: Find & write description
 )

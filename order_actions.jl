@@ -1,5 +1,5 @@
 function get_feasible_actions(
-    state::State
+    state::PlayState
 )::Vector{String}
     feasible_actions = []
     if state.ball_section > FIELD_GOAL_CUTOFF
@@ -28,7 +28,7 @@ function get_feasible_actions(
 end
 
 function order_actions(
-    state::State,
+    state::PlayState,
     best_move::String
 )::Vector{String}
     feasible_actions = get_feasible_actions(state)

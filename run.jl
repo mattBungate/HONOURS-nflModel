@@ -2,19 +2,27 @@ using DataFrames
 using CSV
 using Distributions
 using Base: @sync, @async, Task
-
 using Base.Threads: Atomic
 
 include("util/state.jl")
 include("util/constants.jl")
 include("util/util.jl")
-include("actions/punt_handling.jl")
-include("actions/field_goal_handling.jl")
-include("actions/play_handling.jl")
-include("actions/kneel_handling.jl")
-include("actions/spike_handling.jl")
-include("actions/timeout_handling.jl")
-include("actions/action_value_calc.jl")
+include("plays/actions/field_goal_handling.jl")
+include("plays/actions/kneel_handling.jl")
+include("plays/actions/play_type_handling.jl")
+include("plays/actions/punt_handling.jl")
+include("plays/actions/spike_handling.jl")
+include("plays/actions/timeout_handling.jl")
+include("plays/play_handling.jl")
+include("conversions/consts.jl")
+include("conversions/actions/one_point_handling.jl")
+include("conversions/actions/two_point_handling.jl")
+include("conversions/conversion_handling.jl")
+include("kickoffs/consts.jl")
+include("kickoffs/actions/onside_kick_handling.jl")
+include("kickoffs/actions/returnable_kick_handling.jl")
+include("kickoffs/actions/forced_touchback_handling.jl")
+include("kickoffs/kickoff_handling.jl")
 include("tests/real_tests.jl")
 include("tests/run_tests.jl")
 include("state_value_calc.jl")
@@ -22,9 +30,10 @@ include("interpolation.jl")
 include("evaluate_game.jl")
 include("order_actions.jl")
 
-action_space = ["Kneel", "Punt", "Delayed Play", "Delayed Timeout", "Field Goal", "Timeout", "Hurried Play", "Spike"]
+println("All includes complete")
 
-generate_outcome_space = Dict{String, Function}(
+PLAY_ACTIONS = ["Kneel", "Punt", "Delayed Play", "Delayed Timeout", "Field Goal", "Timeout", "Hurried Play", "Spike"]
+GENERATE_PLAY_OUTCOME_SPACE = Dict{String, Function}(
     "Kneel" => kneel_outcome_space,
     "Timeout" => immediate_timeout_outcome_space,
     "Delayed Timeout" => delayed_timeout_outcome_space,
@@ -34,41 +43,17 @@ generate_outcome_space = Dict{String, Function}(
     "Delayed Play" => delayed_play_outcome_space,
     "Spike" => spike_outcome_space
 )
-
-function solve_DFS(
-    initial_state::State
+CONVERSION_ACTIONS = ["Extra point", "Two point"]
+GENERATE_CONVERSION_OUTCOME_SPACE = Dict{String, Function}(
+    "Extra point" => one_point_outcome_space,
+    "Two point" => two_point_outcome_space
 )
-    best_move = ""
-    best_value = -Inf
-    """
-    for depth in initial_depth:depth_step:initial_state.seconds_remaining
-        try
-            empty!(state_values)
-            seconds_cutoff = initial_state.seconds_remaining - depth
-            search_output = state_value_calc(initial_state, true, best_move)
-            best_value = search_output[1]
-            best_move = search_output[2]
-            println("\nSearch depth: depth")
-            println("Best move: best_move")
-            println("States stored: (length(state_values))\n")
-        catch e
-            if isa(e, InterruptException)
-                println("We found our interrupt exception")
-                println("Our best move is: best_move")
-            end
-            rethrow()
-        end
-    end
-    """
-    output = state_value_calc(initial_state, true, "")
-    return output
-end
-
-
-global state_value_calc_calls = 0
-global interpolated_value_calls = 0
-
-
+KICKOFF_ACTIONS = ["Onside kick", "Returnable kick", "Forced touchback"]
+GENERATE_KICKOFF_OUTCOME_SPACE = Dict{String, Function}(
+    "Onside kick" => onside_kick_outcome_space,
+    "Returnable kick" => returnable_kick_outcome_space,
+    "Forced touchback" => forced_toucback_outcome_space
+)
 
 #const IS_FIRST_HALF = false # TODO: Have a way to have this as an input
 
@@ -80,7 +65,7 @@ global interpolated_value_calls = 0
 #const starting_score_diff = test_state.score_diff
 const SCORE_BOUND = 14
 
-function run_with_timeout(func::Function, timeout_seconds::Int, state::State)
+function run_with_timeout(func::Function, timeout_seconds::Int, state::PlayState)
     result = Ref{Any}((-Inf, "Timed out", -1))
     done = Channel{Bool}(1) # Channel to signal task completion
     stop_signal = Atomic{Bool}(false) # Shared signal to indicate stopping
@@ -89,7 +74,7 @@ function run_with_timeout(func::Function, timeout_seconds::Int, state::State)
         @async begin
             try
                 start_time = time()
-                action_val, optimal_action = func(state, true, "", stop_signal) # func needs to accept stop_signal and check it
+                action_val, optimal_action = func(state, true, stop_signal) # func needs to accept stop_signal and check it
                 end_time = time()
                 if !stop_signal[]
                     result[] = (action_val, optimal_action, end_time - start_time) # Store result and execution time
@@ -97,7 +82,7 @@ function run_with_timeout(func::Function, timeout_seconds::Int, state::State)
                 # Signal completion by closing the channel, which also signals the timer task to stop waiting
                 close(done)
             catch e
-                println("Task interrupted or an error occurred: $e")
+                println("Task interrupted or an error occurred (run_with_timeout()): $e")
             end
         end
 
@@ -133,8 +118,32 @@ State:
 - Clock ticking
 """
 
-#test_kickoff("second_half/interpolation")
+println("Let's get testing")
+"""
+test_state = PlayState(
+    1,
+    0,
+    (1,1),
+    TOUCHBACK_SECTION,
+    FIRST_DOWN,
+    FIRST_DOWN_TO_GO,
+    false
+)
+# Reinitialise stats - TODO: Tun this into function for simplicity/readability
+global play_state_values = Dict{PlayState,Tuple{Float64,String}}()
+global play_decision_calc_calls = 0
+global conversion_state_values = Dict{ConversionState,Tuple{Float64,String}}()
+global conversion_decision_calc_calls = 0
+global kickoff_state_values = Dict{KickoffState,Tuple{Float64,String}}()
+global kickoff_decision_calc_calls = 0
+state_val_output = state_value_calc(test_state, true, Atomic{Bool}(false))
+println("\n\n\n -------- state_value_calc() output --------")
+println(state_val_output)
+"""
 
+test_kickoff("conversion-kickoff/interpolation-sym-memo")
+#run_tests()
+"""
 df = DataFrame(
     seconds = Int[],
     test_scenario = Int[],
@@ -144,15 +153,15 @@ df = DataFrame(
     function_calls = Int[]
 )
 
-global state_values = Dict{State, Tuple{Float64, String}}()
-global state_value_calc_calls = 0
-
 REAL_TEST_IDX = 4
 
 test_state, _, outcome = REAL_TESTS[REAL_TEST_IDX]
 
 for timeouts_remaining in 0:2
-    timeout_reduced_state = State(
+    global state_values = Dict{State, Tuple{Float64, String}}()
+    global state_value_calc_calls = 0
+
+    timeout_test_state = State(
         test_state.seconds_remaining,
         test_state.score_diff,
         (timeouts_remaining, timeouts_remaining),
@@ -161,16 +170,17 @@ for timeouts_remaining in 0:2
         test_state.first_down_dist,
         test_state.clock_ticking
     )
-    
-    println("Starting solve of: $timeout_reduced_state")
+
+    println("Starting solve of: timeout_test_state")
 
     start_time = time()
-    action_val, optimal_action = state_value_calc(timeout_reduced_state, true, "", Atomic{Bool}(false))
+    action_val, optimal_action = state_value_calc(timeout_test_state, true, "", Atomic{Bool}(false))
     end_time = time()
     solve_time = end_time - start_time
 
-    println("$(timeouts_remaining) timeouts case solved in $(solve_time)")
-
+    println("(timeouts_remaining) timeouts case solved in (solve_time)")
+    println("Function calls: (state_value_calc_calls)")
+    println("States stored: (length(state_values))")
 end
 
 push!(
@@ -185,4 +195,5 @@ push!(
         function_calls = state_value_calc_calls
     )
 )
-CSV.write("tests/real/default.csv", df)
+CSV.write("tests/real/interpolation.csv", df)
+"""
