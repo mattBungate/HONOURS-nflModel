@@ -60,7 +60,8 @@ end
 
 function test_kickoff(
     file_name::String, 
-    start_seconds_remaining::Int=1
+    start_seconds_remaining::Int=1,
+    max_search_time::Int=300
 )
     println("Starting kickoff testing")
     # Initialise
@@ -70,12 +71,17 @@ function test_kickoff(
         optimal_action = String[],
         action_value = Float64[],
         solve_time = Float64[],
-        stored_states = Int[],
-        function_calls = Int[]
+        total_stored_states = Int[],
+        total_function_calls = Int[],
+        play_stored_states = Int[],
+        play_function_calls = Int[],
+        conversion_stored_states = Int[],
+        conversion_function_calls = Int[],
+        kickoff_stored_states = Int[],
+        kickoff_function_calls = Int[]
     )
 
     no_search = [false, false, false, false]
-    max_search_time = 40
 
     seconds_remaining = start_seconds_remaining
     while true # seconds loop
@@ -84,51 +90,56 @@ function test_kickoff(
             if no_search[timeouts_remaining + 1]
                 continue
             end
-            global state_values = Dict{StateFH, Tuple{Float64, String}}()
-            global state_value_calc_calls = 0
+            # Reinitialise stats - TODO: turn this into function for simplicity/readability
+            global play_state_values = Dict{PlayState, Tuple{Float64,String}}()
+            global play_decision_calc_calls = 0
+            global conversion_state_values = Dict{ConversionState, Tuple{Float64, String}}()
+            global conversion_decision_calc_calls = 0
+            global kickoff_state_values = Dict{KickoffState, Tuple{Float64,String}}()
+            global kickoff_decision_calc_calls = 0
 
-            test_state = StateFH(
+            test_state = KickoffState(
                 seconds_remaining,
                 (timeouts_remaining, timeouts_remaining),
-                TOUCHBACK_SECTION,
-                FIRST_DOWN,
-                FIRST_DOWN_TO_GO,
-                false
             )
 
-            try
-                print("Solving $(seconds_remaining) second with $(timeouts_remaining) timeouts")
-                action_val, optimal_action, solve_time = run_with_timeout(
-                    state_value_calc, 
-                    max_search_time,
-                    test_state
-                )
+            print("Solving $(seconds_remaining) second with $(timeouts_remaining) timeouts")
+            start_time = time()
+            action_val, optimal_action = state_value_calc(test_state, true)
+            end_time = time()
+            solve_time = end_time - start_time
 
-                # Write solution to csv
-                global state_values
-                global state_value_calc_calls
-                push!(
-                    df,
-                    (
-                        seconds = seconds_remaining,
-                        timeouts_remaining = timeouts_remaining,
-                        optimal_action = optimal_action,
-                        action_value = action_val,
-                        solve_time = solve_time,
-                        stored_states = length(state_values),
-                        function_calls = state_value_calc_calls
-                    )
+            # Write solution to csv
+            global play_state_values
+            global play_decision_calc_calls
+            global conversion_state_values
+            global conversion_decision_calc_calls
+            global kickoff_state_values
+            global kickoff_decision_calc_calls
+            total_states_stored = length(play_state_values) + length(conversion_state_values) + length(kickoff_state_values)
+            total_function_calls = play_decision_calc_calls + conversion_decision_calc_calls + kickoff_decision_calc_calls
+            push!(
+                df,
+                (
+                    seconds = seconds_remaining,
+                    timeouts_remaining = timeouts_remaining,
+                    optimal_action = optimal_action,
+                    action_value = action_val,
+                    solve_time = solve_time,
+                    total_stored_states = total_states_stored,
+                    total_function_calls = total_function_calls,
+                    play_stored_states = length(play_state_values),
+                    play_function_calls = play_decision_calc_calls,
+                    conversion_stored_states = length(conversion_state_values),
+                    conversion_function_calls = conversion_decision_calc_calls,
+                    kickoff_stored_states = length(kickoff_state_values),
+                    kickoff_function_calls = kickoff_decision_calc_calls
                 )
-                print(" - Solved\n")
-                CSV.write("tests/test_kickoff/$(file_name).csv", df)
-                if solve_time > max_search_time
-                    no_search[timeouts_remaining + 1] = true
-                end
-            catch e
-                println(" - Timed out")
-                #println("Task interrupted with error $e")
+            )
+            print(" - Solved ($(round(solve_time, digits=2))s)\n")
+            CSV.write("tests/test_kickoff/$(file_name).csv", df)
+            if solve_time > max_search_time
                 no_search[timeouts_remaining + 1] = true
-                #println("$timeouts_remaining timeouts max seconds: $(seconds_remaining - 1)")
             end
         end
         # Check if all timed out
