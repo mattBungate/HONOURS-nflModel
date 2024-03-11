@@ -3,7 +3,6 @@ Struct to hold the information for the state
 
 Fields:
 - plays_remaining: how many plays until the clock expires
-- score_diff: Difference of scores between teams (team - opp)
 - timeouts_remaining: Timeouts remaining (off, def)
 - ball_section: Section of the field the ball is in
 - down: What down it is
@@ -11,7 +10,7 @@ Fields:
 - clock_ticking: Game clock ticking after play ends 
 - is_first_half: First or second half 
 """
-struct StateFH
+struct PlayState
     seconds_remaining::Int
     timeouts_remaining::Tuple{Int,Int}
     ball_section::Int
@@ -20,17 +19,47 @@ struct StateFH
     clock_ticking::Bool
 end
 
+struct ConversionState
+    seconds_remaining::Int
+    timeouts_remaining::Tuple{Int,Int}
+end
+
+struct KickoffState
+    seconds_remaining::Int
+    timeouts_remaining::Tuple{Int,Int}
+end
+
 # Set up printing state object
-function Base.show(io::IO, s::StateFH)
+function Base.show(io::IO, s::PlayState)
     print(
         io,
-        "StateFH(
+        "PlayState(
     Seconds remaining: $(s.seconds_remaining)
     Timeouts remaining: $(s.timeouts_remaining)
     Ball section: $(s.ball_section)
     Down: $(s.down)
     First down section: $(s.first_down_dist)
     Clock ticking: $(s.clock_ticking ? "Y" : "N")
+)"
+    )
+end
+
+function Base.show(io::IO, s::KickoffState)
+    print(
+        io,
+        "KickoffState(
+    Seconds remaining: $(s.seconds_remaining)
+    Timeouts remaining: $(s.timeouts_remaining)
+)"
+    )
+end
+
+function Base.show(io::IO, s::ConversionState)
+    print(
+        io,
+        "ConversionState(
+    Seconds remaining: $(s.seconds_remaining)
+    Timeouts remaining: $(s.timeouts_remaining)
 )"
     )
 end

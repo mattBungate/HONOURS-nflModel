@@ -2,14 +2,14 @@
 Generates the outcome space with corresponding probabilities for field goal action
 """
 function field_goal_outcome_space(
-    state::StateFH
-)::Vector{Tuple{StateFH, Float64, Int, Bool}} # State, Probability, reward change possession
+    state::PlayState
+)::Vector{Tuple{Union{PlayState, ConversionState, KickoffState}, Float64, Int, Bool}} # State, Probability, reward change possession
     
     if state.ball_section < FIELD_GOAL_CUTOFF
         return []
     end
 
-    field_goal_outcome_space = []
+    field_goal_outcome_space = Vector{Tuple{Union{PlayState, ConversionState, KickoffState}, Float64, Int, Bool}}()
 
     # Get Probability
     ball_section_10_yard = Int(ceil(state.ball_section / 10))
@@ -35,17 +35,13 @@ function field_goal_outcome_space(
             push!(
                 field_goal_outcome_space, 
                 (
-                    StateFH(
+                    KickoffState(
                         state.seconds_remaining - seconds,
-                        reverse(state.timeouts_remaining),
-                        TOUCHBACK_SECTION,
-                        FIRST_DOWN,
-                        FIRST_DOWN_TO_GO,
-                        false
+                        state.timeouts_remaining
                     ),
                     made_state_prob,
                     FIELD_GOAL_SCORE,
-                    true
+                    false
                 )
             )
         end
@@ -73,7 +69,7 @@ function field_goal_outcome_space(
                 push!(
                     field_goal_outcome_space,
                     (
-                        StateFH(
+                        PlayState(
                             state.seconds_remaining - seconds,
                             reverse(state.timeouts_remaining),
                             FIELD_GOAL_MERCY_SECTION,
@@ -82,7 +78,7 @@ function field_goal_outcome_space(
                             false
                         ),
                         missed_state_prob,
-                        0,
+                        NO_SCORE,
                         true
                     )
                 )
@@ -91,7 +87,7 @@ function field_goal_outcome_space(
                 push!(
                     field_goal_outcome_space,
                     (
-                        StateFH(
+                        PlayState(
                             state.seconds_remaining - seconds,
                             reverse(state.timeouts_remaining),
                             flip_field(state.ball_section),
@@ -100,7 +96,7 @@ function field_goal_outcome_space(
                             false
                         ),
                         missed_state_prob,
-                        0,
+                        NO_SCORE,
                         true
                     )
                 )

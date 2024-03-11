@@ -1,6 +1,6 @@
 function punt_outcome_space(
-    state::StateFH
-)::Vector{Tuple{StateFH, Float64, Int, Bool}} # State, prob, reward, change possession
+    state::PlayState
+)::Vector{Tuple{Union{PlayState,KickoffState,ConversionState}, Float64, Int, Bool}} # State, prob, reward, change possession
     """ Invalid action """
     # Action infeasible
     
@@ -11,7 +11,7 @@ function punt_outcome_space(
     end
 
     """ Outcome Space """
-    outcome_space = []
+    outcome_space = Vector{Tuple{Union{PlayState,KickoffState,ConversionState}, Float64, Int, Bool}}()
     punt_probs = filter(row ->
             (row[:"Punt Section"] == state.ball_section),
         punt_df
@@ -34,17 +34,13 @@ function punt_outcome_space(
         push!(
             outcome_space,
             (
-                StateFH(
+                ConversionState(
                     state.seconds_remaining - play_length,
-                    state.timeouts_remaining,
-                    TOUCHBACK_SECTION,
-                    FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
-                    false
+                    reverse(state.timeouts_remaining),
                 ),
                 state_prob,
                 -TOUCHDOWN_SCORE,
-                false
+                true
             )
         )
 
@@ -75,7 +71,7 @@ function punt_outcome_space(
             push!(
                 outcome_space,
                 (
-                    StateFH(
+                    PlayState(
                         state.seconds_remaining - play_length,
                         reverse(state.timeouts_remaining),
                         flip_field(field_position),

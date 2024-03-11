@@ -1,29 +1,29 @@
 
 
 function hurried_play_outcome_space(
-    state::StateFH
-)::Vector{Tuple{StateFH, Float64, Int, Bool}} # State, prob, reward, change possession
+    state::PlayState
+)::Vector{Tuple{Union{PlayState,KickoffState,ConversionState}, Float64, Int, Bool}} # State, prob, reward, change possession
     # TODO: could have different stats fed into this function
     return play_outcome_space(state, 0)
 end
 
 function delayed_play_outcome_space(
-    state::StateFH
-)::Vector{Tuple{StateFH, Float64, Int, Bool}} # State, prob, reward, change possession
+    state::PlayState
+)::Vector{Tuple{Union{ConversionState,KickoffState,PlayState}, Float64, Int, Bool}} # State, prob, reward, change possession
     # TODO: could have different stats fed into the play_outcome_space function
     return play_outcome_space(state, 1)
 end
 
 function play_outcome_space(
-    state::StateFH,
+    state::PlayState,
     delayed::Int
-)::Vector{Tuple{StateFH, Float64, Int, Bool}} # State, prob, reward, change possession
+)::Vector{Tuple{Union{PlayState,KickoffState,ConversionState}, Float64, Int, Bool}} # State, prob, reward, change possession
     # Invalid action
     
     # Domain knowledge
 
     """ Outcome space """
-    outcome_space = []
+    outcome_space = Vector{Tuple{Union{PlayState,KickoffState,ConversionState}, Float64, Int, Bool}}()
     # Get the probabilities
     all_position_probs = filter(row ->
             (row[:"Down"] == state.down) &
@@ -48,13 +48,9 @@ function play_outcome_space(
         push!(
             outcome_space, 
             (
-                StateFH(
+                ConversionState(
                     state.seconds_remaining - play_length,
-                    reverse(state.timeouts_remaining),
-                    TOUCHBACK_SECTION,
-                    FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
-                    false
+                    reverse(state.timeouts_remaining)
                 ),
                 state_prob,
                 TOUCHDOWN_SCORE,
@@ -83,13 +79,9 @@ function play_outcome_space(
         push!(
             outcome_space, 
             (
-                StateFH(
+                ConversionState(
                     state.seconds_remaining - play_length,
-                    state.timeouts_remaining,
-                    TOUCHBACK_SECTION,
-                    FIRST_DOWN,
-                    FIRST_DOWN_TO_GO,
-                    false
+                    reverse(state.timeouts_remaining),
                 ),
                 state_prob,
                 -TOUCHDOWN_SCORE,
@@ -124,7 +116,7 @@ function play_outcome_space(
                     push!(
                         outcome_space,
                         (
-                            StateFH(
+                            PlayState(
                                 state.seconds_remaining - play_length,
                                 state.timeouts_remaining,
                                 field_position,
@@ -143,7 +135,7 @@ function play_outcome_space(
                         push!(
                             outcome_space,
                             (
-                                StateFH(
+                                PlayState(
                                     state.seconds_remaining - play_length,
                                     reverse(state.timeouts_remaining),
                                     flip_field(field_position),
@@ -161,7 +153,7 @@ function play_outcome_space(
                         push!(
                             outcome_space,
                             (
-                                StateFH(
+                                PlayState(
                                     state.seconds_remaining - play_length,
                                     state.timeouts_remaining,
                                     field_position,

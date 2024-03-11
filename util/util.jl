@@ -8,7 +8,7 @@ function flip_field(ball_section)
 end
 
 function get_feasible_actions(
-    state::StateFH
+    state::PlayState
 )::Vector{String}
     feasible_actions = []
     if state.ball_section > FIELD_GOAL_CUTOFF
